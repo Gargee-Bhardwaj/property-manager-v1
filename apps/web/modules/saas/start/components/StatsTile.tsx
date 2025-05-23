@@ -53,9 +53,9 @@ export function StatsTile({
 	}, [trend, format]);
 
 	return (
-		<Card>
+		<Card className="min-h-60 cursor-pointer">
 			<CardHeader className="pb-2">
-				<CardTitle className="text-foreground/60 text-sm">
+				<CardTitle className="text-foreground/60 text-xl">
 					{title}
 				</CardTitle>
 			</CardHeader>

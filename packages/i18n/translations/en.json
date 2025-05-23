@@ -773,5 +773,28 @@
 	"choosePlan": {
 		"title": "Choose your plan",
 		"description": "To continue, please select a plan."
-	}
+	},
+	 "sales": {
+      "title": "Sales - Plot Overview",
+      "plotDetails": "Plot {number} Details",
+      "customerName": "Customer Name",
+      "soldTo": "Sold To",
+      "soldOn": "Sold On",
+      "amountCollected": "Amount Collected",
+      "collectedTillDate": "Collected Till Date",
+      "pendingAmount": "Pending Amount",
+      "nextInstallment": "Next Installment",
+      "amountGivenTo": "Amount Given To",
+      "documents": "Documents"
+    },
+    "expenses": {
+      "title": "Expense Dashboard",
+      "spendOnCategories": "Spend on Categories",
+      "totalAmountSpent": "Total Amount Spent",
+      "dateOfSpend": "Date of Spend",
+      "amountPending": "Amount Pending",
+      "amountExceedingLimit": "Amount Exceeding Limit",
+      "amountGivenBy": "Amount Given By",
+      "totalAmountAllotted": "Total Amount Allotted"
+    }
 }

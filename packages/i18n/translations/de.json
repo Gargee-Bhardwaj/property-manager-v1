@@ -773,5 +773,28 @@
 	"choosePlan": {
 		"title": "Wähle einen Plan",
 		"description": "Um weiterzumachen, wähle bitte einen Plan aus."
+	},
+	"sales": {
+		"title": "Verkauf - Übersicht der Parzellen",
+		"plotDetails": "Parzelle {number} Details",
+		"customerName": "Kundenname",
+		"soldTo": "Verkauft an",
+		"soldOn": "Verkauft am",
+		"amountCollected": "Eingenommener Betrag",
+		"collectedTillDate": "Bisher eingenommen",
+		"pendingAmount": "Ausstehender Betrag",
+		"nextInstallment": "Nächste Rate",
+		"amountGivenTo": "Betrag gegeben an",
+		"documents": "Dokumente"
+	},
+	"expenses": {
+		"title": "Ausgabenübersicht",
+		"spendOnCategories": "Ausgaben nach Kategorien",
+		"totalAmountSpent": "Gesamtausgaben",
+		"dateOfSpend": "Ausgabedatum",
+		"amountPending": "Ausstehender Betrag",
+		"amountExceedingLimit": "Betrag über dem Limit",
+		"amountGivenBy": "Betrag gegeben von",
+		"totalAmountAllotted": "Gesamt zugewiesener Betrag"
 	}
 }
