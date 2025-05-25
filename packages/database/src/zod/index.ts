@@ -76,6 +76,8 @@ export const PurchaseScalarFieldEnumSchema = z.enum(['id','organizationId','user
 
 export const AiChatScalarFieldEnumSchema = z.enum(['id','organizationId','userId','title','messages','createdAt','updatedAt']);
 
+export const PlotsScalarFieldEnumSchema = z.enum(['id','organizationId','number','status','color','customerName','soldTo','soldOn','amountCollected','amountCollectedTillDate','pendingAmount','nextInstallmentDate','nextInstallmentAmount','amountGivenTo','amountGivenOn','documents','createdAt','updatedAt']);
+
 export const SortOrderSchema = z.enum(['asc','desc']);
 
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value);
@@ -277,3 +279,30 @@ export const AiChatSchema = z.object({
 })
 
 export type AiChat = z.infer<typeof AiChatSchema>
+
+/////////////////////////////////////////
+// PLOTS SCHEMA
+/////////////////////////////////////////
+
+export const PlotsSchema = z.object({
+  id: z.string().cuid(),
+  organizationId: z.string().nullable(),
+  number: z.number().int().nullable(),
+  status: z.string().nullable(),
+  color: z.string().nullable(),
+  customerName: z.string(),
+  soldTo: z.string(),
+  soldOn: z.coerce.date(),
+  amountCollected: z.number().int(),
+  amountCollectedTillDate: z.number().int(),
+  pendingAmount: z.number().int(),
+  nextInstallmentDate: z.coerce.date(),
+  nextInstallmentAmount: z.number().int(),
+  amountGivenTo: z.string(),
+  amountGivenOn: z.coerce.date(),
+  documents: z.string().array(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type Plots = z.infer<typeof PlotsSchema>
