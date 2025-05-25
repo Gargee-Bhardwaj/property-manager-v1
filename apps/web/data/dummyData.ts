@@ -206,3 +206,30 @@ export const dummyExpenses = {
   amountExceedingLimit: 100000,
 };
 
+
+export const summaryData = {
+  expensesOverview: [
+    { category: "Material", amount: 20000 },
+    { category: "Labor", amount: 15000 },
+    { category: "Misc", amount: 5000 },
+  ],
+  salesOverview: [
+    { label: "Sold", value: 120 },
+    { label: "In Progress", value: 30 },
+    { label: "Pipeline", value: 50 },
+  ],
+  amountCollected: [
+    { month: "Jan", amount: 50000 },
+    { month: "Feb", amount: 60000 },
+    { month: "Mar", amount: 45000 },
+  ],
+  amountByPartner: [
+    { partner: "Partner A", amount: 40000 },
+    { partner: "Partner B", amount: 35000 },
+  ],
+  installments: {
+    pending: 10000,
+    done: 80000,
+  },
+};
+
