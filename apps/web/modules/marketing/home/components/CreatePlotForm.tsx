@@ -35,29 +35,30 @@ export function CreatePlotForm() {
     },
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = async (values: any) => {
     try {
+      const payload = {
+        ...values,
+        number: values.number ?parseInt(values.number) : null,
+        amountCollected: values.amountCollected ? parseInt(values.amountCollected) : null,
+        soldOn: values.soldOn ? new Date(values.soldOn).toISOString() : null,
+        nextInstallmentDate: values.nextInstallmentDate ? new Date(values.nextInstallmentDate).toISOString() : null,
+        amountGivenOn: values.amountGivenOn ? new Date(values.amountGivenOn).toISOString() : null,
+        documents: typeof values.documents === "string"
+          ? values.documents.split(",").map(d => d.trim())
+          : values.documents || [],
+      };
 
-       const payload = {
-      ...values,
-      soldOn: values.soldOn ? new Date(values.soldOn).toISOString() : null,
-      nextInstallmentDate: values.nextInstallmentDate ? new Date(values.nextInstallmentDate).toISOString() : null,
-      amountGivenOn: values.amountGivenOn ? new Date(values.amountGivenOn).toISOString() : null,
-      documents: typeof values.documents === "string"
-        ? values.documents.split(",").map(d => d.trim())
-        : values.documents || [],
-    };
-
-    console.log(payload);
+      console.log(payload);
    
-      const plot = await apiClient.plots.$post(payload);
+      const plot = await apiClient.plots.$post({ json: payload });
+
       console.log("Created plot:", plot);
     } catch (error) {
       console.error(error);
       form.setError("root", { message: "Failed to create plot" });
     }
-  });
-
+  };
 
   return (
     <div>
@@ -67,7 +68,7 @@ export function CreatePlotForm() {
         </Alert>
       ) : (
         <Form {...form}>
-          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
             {form.formState.errors.root?.message && (
               <Alert variant="error">
                 <AlertTitle>{form.formState.errors.root.message}</AlertTitle>

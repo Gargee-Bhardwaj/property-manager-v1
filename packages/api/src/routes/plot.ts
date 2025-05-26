@@ -60,7 +60,19 @@ export const plotsRouter = new Hono()
     return c.json(plots);
   })
 .post("/",
-  // validator("json", plotSchema),
+  describeRoute({
+		tags: ["Plots"],
+		summary: "create plot",
+		responses: {
+			200: {
+				description: "create plot",
+				content: {
+					"application/json": {
+					},
+				},
+			},
+		},
+	}),
   async (c) => {
     try {
       const userId = c.get("user").id;
@@ -68,10 +80,16 @@ export const plotsRouter = new Hono()
       if (!member) return c.json({ error: "Not authorized" }, 403);
 
       const organizationId = member.organizationId;
+      const text = await c.req.text();
+      let data;
 
-      const data = c.req.json();
-      console.log(data , "data in post");
-      debugger;
+      if (text) {
+        data = JSON.parse(text);
+        console.log("Parsed data:", data);
+      } else {
+        return error("No data provided");
+      }
+    
 
       const plot = await db.plots.create({
         data: {
@@ -81,7 +99,6 @@ export const plotsRouter = new Hono()
       });
 
       return c.json(plot);
-      // return data;
     } catch (e: any) {
       console.error("Error in POST /plots:", e);
       return c.json({ error: error || "Unknown error" }, 400);
