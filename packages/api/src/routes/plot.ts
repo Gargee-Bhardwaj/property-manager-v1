@@ -1,27 +1,29 @@
 import { z } from "zod";
 import { describeRoute } from "hono-openapi";
 import { resolver, validator } from "hono-openapi/zod";
-import { HTTPException } from "hono/http-exception";
 import { Hono } from "hono";
 import { db } from "@repo/database";
 import { authMiddleware } from "../middleware/auth";
 import { error } from "console";
+import { verifyOrganizationMembership } from "./organizations/lib/membership";
+import { get } from "http";
 
-const plotSchema = z.object({
-  number: z.number().optional(),
-  status: z.string().optional(),
-  customerName: z.string(),
-  color: z.string().optional(),
-  soldTo: z.string().optional(),
-  soldOn: z.string().optional(),
-  amountCollected: z.number().optional(),
-  amountCollectedTillDate: z.number().optional(),
-  pendingAmount: z.number().optional(),
-  nextInstallmentDate: z.string().optional(),
-  nextInstallmentAmount: z.number().optional(),
-  amountGivenTo: z.string().optional(),
-  amountGivenOn: z.string().optional(),
-  documents: z.array(z.string()).optional(),
+const plotCreateSchema = z.object({
+  number: z.number().nullable().optional(),
+  status: z.string().nullable().optional(),
+  customerName: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+  soldTo: z.string().nullable().optional(),
+  soldOn: z.string().nullable().optional(),
+  amountCollected: z.number().nullable().optional(),
+  amountCollectedTillDate: z.number().nullable().optional(),
+  pendingAmount: z.number().nullable().optional(),
+  nextInstallmentDate: z.string().nullable().optional(),
+  nextInstallmentAmount: z.number().nullable().optional(),
+  amountGivenTo: z.string().nullable().optional(),
+  amountGivenOn: z.string().nullable().optional(),
+  documents: z.array(z.string()).nullable().optional(),
+  organizationId: z.string().nullable().optional(),
 });
 
  
@@ -43,22 +45,38 @@ export const plotsRouter = new Hono()
 		},
 	}),
    async (c) => {
-    const org_id = c.req.query("org_id");
+    const organizationId = c.req.query("org_id");
     const userId = c.get("user").id;
-    const member =  await db.member.findFirst({
-      where: {
-        organizationId: org_id,
-        userId: userId
-      }
-    })
-    if (!member) return error("you do not belong to this organisation");
+    if (organizationId) {
+      await verifyOrganizationMembership(organizationId, userId);
+    }
     const plots = await db.plots?.findMany({
         where: {
-            organizationId: org_id,
+            organizationId: organizationId,
         },
     });
     return c.json(plots);
   })
+.get("/:id",
+  describeRoute({
+    tags: ["Plots"],
+    summary: "Get plot by id",
+    responses: {
+      200: {
+        description: "Returns plot by id",
+        content: {
+          "application/json": {
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const { id } = c.req.param();
+    const plot = await db.plots.findUnique({ where: { id } });
+    return c.json(plot);
+  }
+)
 .post("/",
   describeRoute({
 		tags: ["Plots"],
@@ -73,6 +91,10 @@ export const plotsRouter = new Hono()
 			},
 		},
 	}),
+  validator(
+			"json",
+      plotCreateSchema,
+		),
   async (c) => {
     try {
       const userId = c.get("user").id;
@@ -80,21 +102,29 @@ export const plotsRouter = new Hono()
       if (!member) return c.json({ error: "Not authorized" }, 403);
 
       const organizationId = member.organizationId;
-      const text = await c.req.text();
-      let data;
+      if (organizationId) {
+				await verifyOrganizationMembership(organizationId, userId);
+			}
 
-      if (text) {
-        data = JSON.parse(text);
-        console.log("Parsed data:", data);
-      } else {
-        return error("No data provided");
-      }
-    
+      const data = c.req.valid("json");
 
       const plot = await db.plots.create({
         data: {
-          ...data,
-          organizationId,
+          number: data.number,
+          status: data.status,
+          customerName: data.customerName,
+          color: data.color,
+          soldTo: data.soldTo,
+          soldOn: data.soldOn,  
+          amountCollected: data.amountCollected,
+          amountCollectedTillDate: data.amountCollectedTillDate,
+          pendingAmount: data.pendingAmount,
+          nextInstallmentDate: data.nextInstallmentDate,
+          nextInstallmentAmount: data.nextInstallmentAmount,
+          amountGivenTo: data.amountGivenTo,
+          amountGivenOn: data.amountGivenOn,
+          documents: data.documents,
+          organizationId: organizationId
         },
       });
 
@@ -104,40 +134,55 @@ export const plotsRouter = new Hono()
       return c.json({ error: error || "Unknown error" }, 400);
     }
   }
+)
+.put("/:id",
+  describeRoute({
+    tags: ["Plots"],
+    summary: "update plot",
+    responses: {
+      200: {
+        description: "update plot",
+        content: {
+          "application/json": {
+          },
+        },
+      },
+    },
+  }),
+  validator(
+      "json",
+      plotCreateSchema,
+    ),
+  async (c) => {
+    try {
+      const userId = c.get("user").id;
+      
+      const get_plot = await db.plots.findUnique({ where: { id: c.req.param().id } });
+
+      if (!get_plot) {
+        return c.json({ error: "Plot not found" }, 404);
+      }
+      const organizationId = get_plot.organizationId;
+      if (organizationId) {
+        await verifyOrganizationMembership(organizationId, userId);
+      }
+
+      const { id } = c.req.param();
+      const data = c.req.valid("json");
+      const filteredData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined)
+    );
+
+      const plot = await db.plots.update({
+        where: { id },
+        data: filteredData,
+      });
+      
+      return c.json(plot);
+    } catch (e: any) {
+      console.error("Error in POST /plots:", e);
+      return c.json({ error: error || "Unknown error" }, 400);
+    }
+  }
 );
 
-
-
-
-  // export const createPlot = new Hono()
-  // .basePath("/plots")
-  // .use(authMiddleware)
-  // .post("/",
-  //   describeRoute({
-	// 	tags: ["Plots"],
-	// 	summary: "Create a new plot",
-	// 	responses: {
-	// 		200: {
-	// 			description: "Returns the created plot",
-	// 			content: {
-	// 				"application/json": {
-	// 					// schema: resolver(PostSchema),
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }),
-  //  async (c) => {
-  //   const { number , status , color , soldTo , soldOn, amountCollected , amountCollectedTillDate,
-  //     pendingAmount,nextInstallmentDate,nextInstallmentAmount, amountGivenTo,
-  //      amountGivenOn , documents } = await c.req.valid("json");
-  //      const organizationId = "GZuIMsha8PoqO2eUnNvYZ82T7pwHyv2L";
-  //   const plot = await db.plots.create({
-  //     data: {
-  //      number , status , color , soldTo , soldOn, amountCollected , amountCollectedTillDate,
-  //     pendingAmount,nextInstallmentDate,nextInstallmentAmount, amountGivenTo,
-  //      amountGivenOn , documents, organizationId
-  //     },
-  //   });
-  //   return c.json(plot);
-  // });
