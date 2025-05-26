@@ -76,7 +76,7 @@ export const PurchaseScalarFieldEnumSchema = z.enum(['id','organizationId','user
 
 export const AiChatScalarFieldEnumSchema = z.enum(['id','organizationId','userId','title','messages','createdAt','updatedAt']);
 
-export const PlotsScalarFieldEnumSchema = z.enum(['id','organizationId','number','status','color','customerName','soldTo','soldOn','amountCollected','amountCollectedTillDate','pendingAmount','nextInstallmentDate','nextInstallmentAmount','amountGivenTo','amountGivenOn','documents','createdAt','updatedAt']);
+export const PlotsScalarFieldEnumSchema = z.enum(['id','number','status','color','organizationId','customerName','soldTo','soldOn','amountCollected','amountCollectedTillDate','pendingAmount','nextInstallmentDate','nextInstallmentAmount','amountGivenTo','amountGivenOn','documents','createdAt','updatedAt']);
 
 export const SortOrderSchema = z.enum(['asc','desc']);
 
@@ -286,20 +286,20 @@ export type AiChat = z.infer<typeof AiChatSchema>
 
 export const PlotsSchema = z.object({
   id: z.string().cuid(),
-  organizationId: z.string().nullable(),
   number: z.number().int().nullable(),
   status: z.string().nullable(),
   color: z.string().nullable(),
-  customerName: z.string(),
-  soldTo: z.string(),
-  soldOn: z.coerce.date(),
-  amountCollected: z.number().int(),
-  amountCollectedTillDate: z.number().int(),
-  pendingAmount: z.number().int(),
-  nextInstallmentDate: z.coerce.date(),
-  nextInstallmentAmount: z.number().int(),
-  amountGivenTo: z.string(),
-  amountGivenOn: z.coerce.date(),
+  organizationId: z.string().nullable(),
+  customerName: z.string().nullable(),
+  soldTo: z.string().nullable(),
+  soldOn: z.coerce.date().nullable(),
+  amountCollected: z.number().int().nullable(),
+  amountCollectedTillDate: z.number().int().nullable(),
+  pendingAmount: z.number().int().nullable(),
+  nextInstallmentDate: z.coerce.date().nullable(),
+  nextInstallmentAmount: z.number().int().nullable(),
+  amountGivenTo: z.string().nullable(),
+  amountGivenOn: z.coerce.date().nullable(),
   documents: z.string().array(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

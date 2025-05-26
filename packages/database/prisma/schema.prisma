@@ -130,6 +130,7 @@ model Organization {
   invitations        Invitation[]
   purchases          Purchase[]
   aiChats            AiChat[]
+  plots              Plots[]
 
   @@unique([slug])
   @@map("organization")
@@ -195,4 +196,26 @@ model AiChat {
   messages       Json?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+}
+
+model Plots {
+  id                       String        @id @default(cuid())
+  number                   Int?
+  status                   String?
+  color                    String?
+  organizationId           String?
+  organization             Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customerName             String?
+  soldTo                   String?
+  soldOn                   DateTime?
+  amountCollected          Int?
+  amountCollectedTillDate  Int?
+  pendingAmount            Int?
+  nextInstallmentDate      DateTime?
+  nextInstallmentAmount    Int?
+  amountGivenTo            String?
+  amountGivenOn            DateTime?
+  documents                String[]
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 }

@@ -13,7 +13,11 @@
 		"node": ">=20"
 	},
 	"packageManager": "pnpm@9.3.0",
+	 "prisma": {
+    "schema": "packages/database/prisma/schema.prisma"
+  },
 	"devDependencies": {
+		"prisma": "6.4.1",
 		"@biomejs/biome": "1.9.4",
 		"@repo/tsconfig": "workspace:*",
 		"@types/node": "^22.13.10",
@@ -28,6 +32,7 @@
 		}
 	},
 	"dependencies": {
+		"@prisma/client": "6.4.1",
 		"@supabase/supabase-js": "^2.49.7",
 		"recharts": "^2.15.3"
 	}

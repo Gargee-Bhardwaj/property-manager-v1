@@ -18,5 +18,7 @@ export const authMiddleware = createMiddleware<{
 	c.set("session", session.session);
 	c.set("user", session.user);
 
+	console.log(session , session.user , "in auth middleware");
+
 	await next();
 });
