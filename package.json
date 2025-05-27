@@ -17,13 +17,13 @@
     "schema": "packages/database/prisma/schema.prisma"
   },
 	"devDependencies": {
-		"prisma": "6.4.1",
+		"prisma": "6.8.2",
 		"@biomejs/biome": "1.9.4",
 		"@repo/tsconfig": "workspace:*",
-		"@types/node": "^22.13.10",
+		"@types/node": "^22.15.21",
 		"dotenv-cli": "^8.0.0",
-		"turbo": "^2.4.4",
-		"typescript": "5.8.2"
+		"turbo": "^2.5.3",
+		"typescript": "5.8.3"
 	},
 	"pnpm": {
 		"overrides": {
