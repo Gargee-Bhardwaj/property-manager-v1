@@ -32,8 +32,8 @@
 		}
 	},
 	"dependencies": {
-		"@prisma/client": "6.4.1",
-		"@supabase/supabase-js": "^2.49.7",
+		"@prisma/client": "6.8.2",
+		"@supabase/supabase-js": "^2.49.8",
 		"recharts": "^2.15.3"
 	}
 }
