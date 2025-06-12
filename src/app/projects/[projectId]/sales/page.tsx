@@ -15,11 +15,7 @@ async function getProjectDetails(token: string, projectId: string) {
   return response.json();
 }
 
-export default function SalesPage({
-  params,
-}: {
-  params: { projectId: string };
-}) {
+export default function SalesPage() {
   const router = useRouter();
   const [plots, setPlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
