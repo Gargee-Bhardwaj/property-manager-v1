@@ -11,52 +11,73 @@ import { loginApi, getUserProfileApi } from "../apis/auth";
 
 export type AuthContextType = {
   user: User | null;
+  token: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  // Remove createOrganization and addMemberToOrganization for now, as they depend on mock logic
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  // Initialize state from localStorage after component mounts
+  useEffect(() => {
+    const storedToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem("access_token")
+        : null;
+    setToken(storedToken);
+  }, []);
 
   useEffect(() => {
-    // Check for stored token and user on mount
-    const token = localStorage.getItem("access_token");
     if (token) {
       getUserProfileApi(token)
         .then((profile) => setUser(profile))
         .catch(() => {
           setUser(null);
-          localStorage.removeItem("access_token");
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("access_token");
+          }
+          setToken(null);
         });
     }
-  }, []);
+  }, [token]);
 
   const login = async (email: string, password: string) => {
     try {
       const { access_token } = await loginApi(email, password);
-      localStorage.setItem("access_token", access_token);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("access_token", access_token);
+      }
+      setToken(access_token);
       const profile = await getUserProfileApi(access_token);
       setUser(profile);
       return true;
     } catch (error) {
       setUser(null);
-      localStorage.removeItem("access_token");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("access_token");
+      }
+      setToken(null);
       return false;
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("access_token");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("access_token");
+    }
+    setToken(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        token,
         login,
         logout,
       }}
@@ -70,18 +91,4 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
-}
-
-export async function getCurrentUser() {
-  if (typeof window !== "undefined") {
-    try {
-      const user = localStorage.getItem("user");
-      return user ? JSON.parse(user) : null;
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      localStorage.removeItem("user");
-      return null;
-    }
-  }
-  return null;
 }

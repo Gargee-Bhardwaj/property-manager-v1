@@ -65,3 +65,89 @@ export async function getProjectPlotsApi(token: string, projectId: string) {
   }
   return response.json();
 }
+
+export async function getProjectDetails(token: string, projectId: string) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error("Failed to fetch project details");
+  return response.json();
+}
+
+// create plot
+// export async function createPlotApi(
+//   token: string,
+//   projectId: string,
+//   plotData: {
+//     plot_status: string;
+//     area: number;
+//     price: number;
+//     number_of_plots: number;
+//   }
+// ) {
+//   const response = await fetch(`${BASE_URL}/projects/${projectId}/plots`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       Authorization: `Bearer ${token}`,
+//     },
+//     body: JSON.stringify(plotData),
+//   });
+
+//   if (!response.ok) {
+//     const errorData = await response.json().catch(() => null);
+//     throw new Error(errorData?.detail || "Failed to create plot");
+//   }
+
+//   return response.json();
+// }
+
+export async function createPlotApi(
+  token: string,
+  projectId: string,
+  plotData: {
+    plot_status: string;
+    area: number;
+    price: number;
+    number_of_plots: number;
+  }
+) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}/plots`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(plotData),
+  });
+
+  console.log("Sending plot data: in api", plotData);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    // Handle validation errors specifically
+    if (response.status === 422 && errorData?.detail) {
+      const validationErrors = errorData.detail
+        .map((err: any) => err.msg)
+        .join(", ");
+      throw new Error(validationErrors || "Validation failed");
+    }
+    throw new Error(errorData?.detail || "Failed to create plot");
+  }
+
+  return response.json();
+}
+
+// export const getPlotsApi = async (token: string, projectId: string) => {
+//   const response = await fetch(`${BASE_URL}/projects/${projectId}/plots`, {
+//     headers: {
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+//   if (!response.ok) {
+//     throw new Error("Failed to fetch plots");
+//   }
+//   return response.json();
+// };

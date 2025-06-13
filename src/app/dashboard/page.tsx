@@ -1,0 +1,74 @@
+"use client";
+import { useAuth } from "../../lib/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getMyProjectsApi } from "../../lib/apis/auth";
+import MainLayout from "../../components/MainLayout";
+import { useAtom } from "jotai";
+import { projectsAtom } from "../../lib/atoms";
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [projects, setProjects] = useAtom(projectsAtom);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+    if (user.is_superuser) {
+      router.replace("/admin/dashboard");
+      return;
+    }
+    const fetchProjects = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) throw new Error("No access token found");
+        const response = await getMyProjectsApi(token);
+        setProjects(response.data);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch projects");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProjects();
+  }, [user, router, setProjects]);
+
+  return (
+    <MainLayout breadcrumbs={[{ label: "Dashboard" }]}>
+      <h2 className="text-2xl font-bold mb-4">Your Projects</h2>
+      {loading ? (
+        <div>Loading projects...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : projects.length === 0 ? (
+        <div>No projects found.</div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project: any) => (
+            <div
+              key={project.id}
+              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => router.push(`/projects/${project.id}`)}
+            >
+              <h3 className="text-lg font-semibold mb-2">{project.name}</h3>
+              <p className="text-sm mb-2">
+                Created:{" "}
+                {project.created_at
+                  ? new Date(project.created_at).toLocaleDateString()
+                  : "-"}
+              </p>
+              <p className="text-sm">ID: {project.id}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </MainLayout>
+  );
+}
