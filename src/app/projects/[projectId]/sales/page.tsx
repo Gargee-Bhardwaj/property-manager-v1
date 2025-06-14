@@ -335,7 +335,7 @@ export default function SalesPage() {
     try {
       if (!token) throw new Error("No access token found");
       const history = await getPlotTransactionHistory(token, selectedPlot.id);
-      setTransactionHistory(history);
+      setTransactionHistory(history.data || []);
       setShowTransactionHistory(true);
     } catch (err: any) {
       setTransactionHistoryError(
