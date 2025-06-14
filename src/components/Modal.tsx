@@ -16,7 +16,7 @@ export default function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full min-h-[50vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b px-6 py-4">
           <h3 className="text-lg font-semibold">{title}</h3>

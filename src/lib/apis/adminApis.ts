@@ -86,3 +86,46 @@ export async function createProjectApi(
 
   return response.json();
 }
+
+export async function getAllProjectsApi(token: string) {
+  const response = await fetch(`${BASE_URL}/projects`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || "Failed to fetch projects");
+  }
+
+  return response.json();
+}
+
+export async function addPartnerToProjectApi(
+  token: string,
+  projectId: string,
+  partnerData: { user_id: string; role: string }
+) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}/partners`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(partnerData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    if (response.status === 422 && errorData?.detail) {
+      const validationErrors = Array.isArray(errorData.detail)
+        ? errorData.detail.map((err: any) => err.msg).join(", ")
+        : errorData.detail;
+      throw new Error(validationErrors || "Validation failed");
+    }
+    throw new Error(errorData?.detail || "Failed to add partner");
+  }
+
+  return response.json();
+}

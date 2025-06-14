@@ -7,6 +7,8 @@ import {
   createProjectApi,
   createUserApi,
   getUserByPhoneApi,
+  getAllProjectsApi,
+  addPartnerToProjectApi,
 } from "../../../lib/apis/adminApis";
 
 export default function AdminDashboardPage() {
@@ -41,16 +43,35 @@ export default function AdminDashboardPage() {
   const [selectedOwner, setSelectedOwner] = useState<any>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Loading states
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isFindingUser, setIsFindingUser] = useState(false);
+  const [isFetchingProjects, setIsFetchingProjects] = useState(true);
+  const [isAddingPartner, setIsAddingPartner] = useState(false);
+  const [isCreatingPartnerUser, setIsCreatingPartnerUser] = useState(false);
+
+  // Partner states
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProjectForPartner, setSelectedProjectForPartner] =
-    useState<string>("");
   const [editingProjectForPartner, setEditingProjectForPartner] = useState<
     any | null
   >(null);
+  const [partnerMode, setPartnerMode] = useState<"none" | "create" | "find">(
+    "none"
+  );
   const [partnerUser, setPartnerUser] = useState<any>(null);
   const [partnerRole, setPartnerRole] = useState<string>("member");
   const [partnerSearchPhone, setPartnerSearchPhone] = useState("");
   const [partnerFoundUsers, setPartnerFoundUsers] = useState<any[]>([]);
+  const [partnerCreateFormData, setPartnerCreateFormData] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    phone: "",
+    is_active: true,
+    is_superuser: false,
+  });
   const [partnerSuccess, setPartnerSuccess] = useState("");
   const [partnerError, setPartnerError] = useState("");
 
@@ -63,24 +84,19 @@ export default function AdminDashboardPage() {
   // Fetch all projects
   useEffect(() => {
     const fetchProjects = async () => {
+      setIsFetchingProjects(true);
       try {
         if (!token) return;
-        const resp = await fetch(
-          "https://hustle-jldf.onrender.com/api/v1/projects",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const data = await resp.json();
+        const data = await getAllProjectsApi(token);
         setProjects(data.data || []);
       } catch (err) {
-        // ignore for now
+        console.error("Failed to fetch projects:", err);
+      } finally {
+        setIsFetchingProjects(false);
       }
     };
     fetchProjects();
-  }, [token, showCreateProject, success]);
-
-  console.log(projects, "projects in admin page");
+  }, [token, success, partnerSuccess]);
 
   const handleProjectInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -100,10 +116,21 @@ export default function AdminDashboardPage() {
     });
   };
 
+  const handlePartnerCreateUserChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value, type, checked } = e.target;
+    setPartnerCreateFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setIsCreatingUser(true);
 
     try {
       if (!token) throw new Error("Not authenticated");
@@ -122,6 +149,7 @@ export default function AdminDashboardPage() {
         ...projectData,
         owner_id: newUser.id,
       });
+      setSelectedOwner(newUser);
       setUserManagement({
         ...userManagement,
         mode: "none",
@@ -132,12 +160,15 @@ export default function AdminDashboardPage() {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user");
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
   const handleFindUser = async () => {
     setError("");
     setSuccess("");
+    setIsFindingUser(true);
 
     try {
       if (!token) throw new Error("Not authenticated");
@@ -152,6 +183,8 @@ export default function AdminDashboardPage() {
       setSuccess("User found successfully!");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to find user");
+    } finally {
+      setIsFindingUser(false);
     }
   };
 
@@ -174,6 +207,7 @@ export default function AdminDashboardPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setIsCreatingProject(true);
 
     try {
       if (!token) throw new Error("Not authenticated");
@@ -185,6 +219,7 @@ export default function AdminDashboardPage() {
         name: "",
         owner_id: "",
       });
+      setSelectedOwner(null);
       setUserManagement({
         mode: "none",
         email: "",
@@ -196,10 +231,14 @@ export default function AdminDashboardPage() {
         searchPhone: "",
         foundUsers: [],
       });
-      setSuccess("");
-      setTimeout(() => setShowCreateProject(false), 1000);
+      setTimeout(() => {
+        setShowCreateProject(false);
+        setSuccess(""); // Clear success message after modal closes
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -207,38 +246,34 @@ export default function AdminDashboardPage() {
   const handleAddPartner = async () => {
     setPartnerSuccess("");
     setPartnerError("");
+    setIsAddingPartner(true);
     try {
       if (!token) throw new Error("Not authenticated");
       if (!editingProjectForPartner) throw new Error("No project selected");
       if (!partnerUser) throw new Error("Select a user");
-      const resp = await fetch(
-        `https://hustle-jldf.onrender.com/api/v1/projects/${editingProjectForPartner.id}/partners`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ user_id: partnerUser.id, role: partnerRole }),
-        }
-      );
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => null);
-        throw new Error(errData?.detail || "Failed to add partner");
-      }
+      await addPartnerToProjectApi(token, editingProjectForPartner.id, {
+        user_id: partnerUser.id,
+        role: partnerRole,
+      });
+
       setPartnerSuccess("Partner added successfully!");
       setPartnerUser(null);
       setPartnerRole("member");
       setPartnerSearchPhone("");
       setPartnerFoundUsers([]);
+      setPartnerMode("none");
+      setTimeout(() => setPartnerSuccess(""), 2000); // Clear success after 2 seconds
     } catch (err: any) {
       setPartnerError(err.message || "Failed to add partner");
+    } finally {
+      setIsAddingPartner(false);
     }
   };
 
   const handlePartnerFindUser = async () => {
     setPartnerError("");
     setPartnerSuccess("");
+    setIsFindingUser(true);
     try {
       if (!token) throw new Error("Not authenticated");
       if (!partnerSearchPhone.trim())
@@ -247,11 +282,39 @@ export default function AdminDashboardPage() {
       setPartnerFoundUsers([user]);
     } catch (err: any) {
       setPartnerError(err.message || "Failed to find user");
+    } finally {
+      setIsFindingUser(false);
+    }
+  };
+
+  const handlePartnerCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPartnerError("");
+    setPartnerSuccess("");
+    setIsCreatingPartnerUser(true);
+    try {
+      if (!token) throw new Error("Not authenticated");
+      const newUser = await createUserApi(token, partnerCreateFormData);
+      setPartnerUser(newUser);
+      setPartnerSuccess("New user created and selected!");
+      setPartnerCreateFormData({
+        email: "",
+        password: "",
+        full_name: "",
+        phone: "",
+        is_active: true,
+        is_superuser: false,
+      });
+      setPartnerMode("none");
+    } catch (err: any) {
+      setPartnerError(err.message || "Failed to create user");
+    } finally {
+      setIsCreatingPartnerUser(false);
     }
   };
 
   return (
-    <MainLayout breadcrumbs={[{ label: "Admin Dashboard" }]}>
+    <MainLayout>
       <h2 className="text-2xl font-bold mb-6">Admin Dashboard</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div
@@ -304,6 +367,7 @@ export default function AdminDashboardPage() {
                   onChange={handleProjectInputChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  disabled={isCreatingProject}
                 />
               </div>
 
@@ -316,7 +380,7 @@ export default function AdminDashboardPage() {
                     <p className="text-sm">
                       Owner selected:{" "}
                       {selectedOwner
-                        ? `${selectedOwner.full_name}  ${selectedOwner.email}`
+                        ? `${selectedOwner.full_name} (${selectedOwner.email})`
                         : ""}
                     </p>
                     <button
@@ -332,7 +396,7 @@ export default function AdminDashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-3 mb-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -341,7 +405,12 @@ export default function AdminDashboardPage() {
                             mode: "create",
                           })
                         }
-                        className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+                        className={`px-4 py-2 rounded-md text-sm font-medium ${
+                          userManagement.mode === "create"
+                            ? "bg-green-700 text-white"
+                            : "bg-green-600 text-white hover:bg-green-700"
+                        }`}
+                        disabled={isCreatingUser || isFindingUser}
                       >
                         Create New User
                       </button>
@@ -350,7 +419,12 @@ export default function AdminDashboardPage() {
                         onClick={() =>
                           setUserManagement({ ...userManagement, mode: "find" })
                         }
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                        className={`px-4 py-2 rounded-md text-sm font-medium ${
+                          userManagement.mode === "find"
+                            ? "bg-blue-700 text-white"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
+                        disabled={isCreatingUser || isFindingUser}
                       >
                         Find Existing User
                       </button>
@@ -374,6 +448,7 @@ export default function AdminDashboardPage() {
                               onChange={handleUserInputChange}
                               required
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              disabled={isCreatingUser}
                             />
                           </div>
                           <div>
@@ -387,6 +462,7 @@ export default function AdminDashboardPage() {
                               onChange={handleUserInputChange}
                               required
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              disabled={isCreatingUser}
                             />
                           </div>
                           <div>
@@ -399,6 +475,7 @@ export default function AdminDashboardPage() {
                               value={userManagement.full_name}
                               onChange={handleUserInputChange}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              disabled={isCreatingUser}
                             />
                           </div>
                           <div>
@@ -411,9 +488,10 @@ export default function AdminDashboardPage() {
                               value={userManagement.phone}
                               onChange={handleUserInputChange}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                              disabled={isCreatingUser}
                             />
                           </div>
-                          <div className="flex justify-end space-x-2">
+                          <div className="flex justify-end space-x-2 mt-4">
                             <button
                               type="button"
                               onClick={() =>
@@ -423,15 +501,17 @@ export default function AdminDashboardPage() {
                                 })
                               }
                               className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
+                              disabled={isCreatingUser}
                             >
                               Cancel
                             </button>
                             <button
                               type="button"
                               onClick={handleCreateUser}
-                              className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700"
+                              className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:bg-blue-400"
+                              disabled={isCreatingUser}
                             >
-                              Create User
+                              {isCreatingUser ? "Creating..." : "Create User"}
                             </button>
                           </div>
                         </div>
@@ -457,27 +537,32 @@ export default function AdminDashboardPage() {
                               required
                               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                               placeholder="Enter user's phone number"
+                              disabled={isFindingUser}
                             />
                           </div>
-                          <div className="flex justify-end space-x-2">
+                          <div className="flex justify-end space-x-2 mt-4">
                             <button
                               type="button"
                               onClick={() =>
                                 setUserManagement({
                                   ...userManagement,
                                   mode: "none",
+                                  foundUsers: [], // Clear found users on cancel
+                                  searchPhone: "",
                                 })
                               }
                               className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
+                              disabled={isFindingUser}
                             >
                               Cancel
                             </button>
                             <button
                               type="button"
                               onClick={handleFindUser}
-                              className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700"
+                              className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:bg-blue-400"
+                              disabled={isFindingUser}
                             >
-                              Search
+                              {isFindingUser ? "Searching..." : "Search"}
                             </button>
                           </div>
                         </div>
@@ -517,21 +602,26 @@ export default function AdminDashboardPage() {
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowCreateProject(false)}
+                  onClick={() => {
+                    setShowCreateProject(false);
+                    setError("");
+                    setSuccess("");
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  disabled={isCreatingProject}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={!projectData.owner_id}
+                  disabled={!projectData.owner_id || isCreatingProject}
                   className={`px-4 py-2 text-white rounded-md text-sm font-medium ${
-                    !projectData.owner_id
+                    !projectData.owner_id || isCreatingProject
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700"
                   }`}
                 >
-                  Create Project
+                  {isCreatingProject ? "Creating..." : "Create Project"}
                 </button>
               </div>
             </form>
@@ -542,112 +632,328 @@ export default function AdminDashboardPage() {
       {/* List all projects */}
       <div className="mt-10">
         <h3 className="text-lg font-semibold mb-2">All Projects</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="bg-white p-4 rounded shadow border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => setEditingProjectForPartner(project)}
-            >
-              <div className="font-bold text-lg mb-1">{project.name}</div>
-              <div className="text-sm text-gray-600">ID: {project.id}</div>
-              <div className="text-sm text-gray-600">
-                Owner: {project.owner_id}
+        {isFetchingProjects ? (
+          <div className="text-gray-600">Loading projects...</div>
+        ) : projects.length === 0 ? (
+          <div className="text-gray-600">No projects found.</div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="bg-white p-4 rounded shadow border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setEditingProjectForPartner(project)}
+              >
+                <div className="font-bold text-lg mb-1">{project.name}</div>
+                <div className="text-sm text-gray-600">ID: {project.id}</div>
+                <div className="text-sm text-gray-600">
+                  Owner: {project.owner_id}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add Partner to Project section - now conditional */}
       {editingProjectForPartner && (
-        <div className="mt-10 p-6 bg-white rounded-lg shadow-xl">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">
-              Add Partner to {editingProjectForPartner.name}
-            </h3>
+        <div className="bg-opacity-50 flex items-center justify-center my-4">
+          <div className="bg-white rounded-lg p-6 w-full relative">
             <button
-              onClick={() => setEditingProjectForPartner(null)}
-              className="text-gray-500 hover:text-gray-700"
+              onClick={() => {
+                setEditingProjectForPartner(null);
+                setPartnerError("");
+                setPartnerSuccess("");
+                setPartnerUser(null);
+                setPartnerMode("none");
+                setPartnerSearchPhone("");
+                setPartnerFoundUsers([]);
+                setPartnerCreateFormData({
+                  email: "",
+                  password: "",
+                  full_name: "",
+                  phone: "",
+                  is_active: true,
+                  is_superuser: false,
+                });
+              }}
+              className="text-gray-500 hover:text-gray-700 absolute right-4 top-4"
             >
               &times;
             </button>
-          </div>
+            <h3 className="text-lg font-semibold mb-4">
+              Add Partner to {editingProjectForPartner.name}
+            </h3>
 
-          {/* Remove the select box for project here as it's now pre-selected */}
-          {/* The rest of the partner form goes here */}
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Find User by Phone
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={partnerSearchPhone}
-                onChange={(e) => setPartnerSearchPhone(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="Enter phone number"
-              />
-              <button
-                type="button"
-                onClick={handlePartnerFindUser}
-                className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-              >
-                Search
-              </button>
-            </div>
-            {partnerFoundUsers.length > 0 && (
-              <div className="mt-2 space-y-2">
-                {partnerFoundUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between bg-gray-50 p-2 rounded"
+            {partnerError && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                {partnerError}
+              </div>
+            )}
+            {partnerSuccess && (
+              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+                {partnerSuccess}
+              </div>
+            )}
+
+            <div className="space-y-3 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Partner User
+              </label>
+              {partnerUser ? (
+                <div className="bg-gray-50 p-3 rounded-md mb-2 flex justify-between items-center">
+                  <p className="text-sm">
+                    Selected: {partnerUser.full_name || partnerUser.email}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPartnerUser(null)}
+                    className="text-sm text-blue-600 hover:text-blue-800"
                   >
-                    <span>
-                      {user.full_name || user.email} ({user.phone})
-                    </span>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex space-x-3 mb-2">
                     <button
                       type="button"
-                      onClick={() => setPartnerUser(user)}
-                      className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                      onClick={() => setPartnerMode("create")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium ${
+                        partnerMode === "create"
+                          ? "bg-green-700 text-white"
+                          : "bg-green-600 text-white hover:bg-green-700"
+                      }`}
+                      disabled={isCreatingPartnerUser || isFindingUser}
                     >
-                      Select
+                      Create New User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPartnerMode("find")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium ${
+                        partnerMode === "find"
+                          ? "bg-blue-700 text-white"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                      disabled={isCreatingPartnerUser || isFindingUser}
+                    >
+                      Find Existing User
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-            {partnerUser && (
-              <div className="mt-2 text-green-700 text-sm">
-                Selected: {partnerUser.full_name || partnerUser.email}
-              </div>
-            )}
+
+                  {partnerMode === "create" && (
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <h4 className="font-medium text-sm mb-3">
+                        Create New User (Partner)
+                      </h4>
+                      <form
+                        onSubmit={handlePartnerCreateUser}
+                        className="space-y-3"
+                      >
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Email*
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            value={partnerCreateFormData.email}
+                            onChange={handlePartnerCreateUserChange}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            disabled={isCreatingPartnerUser}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Password*
+                          </label>
+                          <input
+                            type="password"
+                            name="password"
+                            value={partnerCreateFormData.password}
+                            onChange={handlePartnerCreateUserChange}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            disabled={isCreatingPartnerUser}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Full Name
+                          </label>
+                          <input
+                            type="text"
+                            name="full_name"
+                            value={partnerCreateFormData.full_name}
+                            onChange={handlePartnerCreateUserChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            disabled={isCreatingPartnerUser}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Phone
+                          </label>
+                          <input
+                            type="text"
+                            name="phone"
+                            value={partnerCreateFormData.phone}
+                            onChange={handlePartnerCreateUserChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            disabled={isCreatingPartnerUser}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setPartnerMode("none")}
+                            className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            disabled={isCreatingPartnerUser}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:bg-blue-400"
+                            disabled={isCreatingPartnerUser}
+                          >
+                            {isCreatingPartnerUser
+                              ? "Creating..."
+                              : "Create User"}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
+                  {partnerMode === "find" && (
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <h4 className="font-medium text-sm mb-3">
+                        Find Existing User (Partner)
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Phone Number*
+                          </label>
+                          <input
+                            type="text"
+                            name="partnerSearchPhone"
+                            value={partnerSearchPhone}
+                            onChange={(e) =>
+                              setPartnerSearchPhone(e.target.value)
+                            }
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            placeholder="Enter user's phone number"
+                            disabled={isFindingUser}
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setPartnerMode("none")}
+                            className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            disabled={isFindingUser}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handlePartnerFindUser}
+                            className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 disabled:bg-blue-400"
+                            disabled={isFindingUser}
+                          >
+                            {isFindingUser ? "Searching..." : "Search"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {partnerFoundUsers.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {partnerFoundUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              className="bg-white p-3 rounded-md border border-gray-200 flex justify-between items-center"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {user.full_name || user.email}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {user.phone}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPartnerUser(user)}
+                                className="px-2 py-1 bg-green-600 text-white rounded-md text-xs hover:bg-green-700"
+                              >
+                                Select
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role
+              </label>
+              <input
+                type="text"
+                value={partnerRole}
+                onChange={(e) => setPartnerRole(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="member"
+                disabled={!partnerUser || isAddingPartner}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingProjectForPartner(null);
+                  setPartnerError("");
+                  setPartnerSuccess("");
+                  setPartnerUser(null);
+                  setPartnerMode("none");
+                  setPartnerSearchPhone("");
+                  setPartnerFoundUsers([]);
+                  setPartnerCreateFormData({
+                    email: "",
+                    password: "",
+                    full_name: "",
+                    phone: "",
+                    is_active: true,
+                    is_superuser: false,
+                  });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                disabled={isAddingPartner}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddPartner}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-400"
+                disabled={
+                  !partnerUser || !editingProjectForPartner || isAddingPartner
+                }
+              >
+                {isAddingPartner ? "Adding..." : "Add Partner"}
+              </button>
+            </div>
           </div>
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <input
-              type="text"
-              value={partnerRole}
-              onChange={(e) => setPartnerRole(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="member"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleAddPartner}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Add Partner
-          </button>
-          {partnerSuccess && (
-            <div className="mt-2 text-green-700">{partnerSuccess}</div>
-          )}
-          {partnerError && (
-            <div className="mt-2 text-red-700">{partnerError}</div>
-          )}
         </div>
       )}
     </MainLayout>

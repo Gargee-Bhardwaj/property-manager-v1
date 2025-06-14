@@ -140,6 +140,74 @@ export async function createPlotApi(
   return response.json();
 }
 
+// Update plot
+export async function updatePlotApi(
+  token: string,
+  plotId: string,
+  plotData: {
+    plot_status?: string;
+    area?: number;
+    price?: number;
+  }
+) {
+  const response = await fetch(`${BASE_URL}/plots/${plotId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(plotData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    // Handle validation errors specifically
+    if (response.status === 422 && errorData?.detail) {
+      const validationErrors = errorData.detail
+        .map((err: any) => err.msg)
+        .join(", ");
+      throw new Error(validationErrors || "Validation failed");
+    }
+    throw new Error(errorData?.detail || "Failed to update plot");
+  }
+
+  return response.json();
+}
+
+// Sell plot
+export async function sellPlotApi(
+  token: string,
+  plotId: string,
+  sellData: {
+    amount_collected: number;
+    sold_on_date: string;
+    customer_name: string;
+    customer_phone: string;
+    customer_email: string;
+  }
+) {
+  const response = await fetch(`${BASE_URL}/plots/${plotId}/sell`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(sellData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    if (response.status === 422 && errorData?.detail) {
+      const validationErrors = errorData.detail
+        .map((err: any) => err.msg)
+        .join(", ");
+      throw new Error(validationErrors || "Validation failed");
+    }
+    throw new Error(errorData?.detail || "Failed to sell plot");
+  }
+
+  return response.json();
+}
 // export const getPlotsApi = async (token: string, projectId: string) => {
 //   const response = await fetch(`${BASE_URL}/projects/${projectId}/plots`, {
 //     headers: {

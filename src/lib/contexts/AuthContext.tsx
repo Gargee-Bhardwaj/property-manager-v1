@@ -8,10 +8,12 @@ import {
 } from "react";
 import { User } from "../auth";
 import { loginApi, getUserProfileApi } from "../apis/auth";
+import { useRouter } from "next/navigation";
 
 export type AuthContextType = {
   user: User | null;
   token: string | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 };
@@ -21,6 +23,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   // Initialize state from localStorage after component mounts
   useEffect(() => {
@@ -29,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? localStorage.getItem("access_token")
         : null;
     setToken(storedToken);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -71,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("access_token");
     }
     setToken(null);
+    router.push("/login");
   };
 
   return (
@@ -80,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         login,
         logout,
+        isLoading,
       }}
     >
       {children}

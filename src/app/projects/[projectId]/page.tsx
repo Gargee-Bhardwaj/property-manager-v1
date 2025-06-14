@@ -2,31 +2,23 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import MainLayout from "../../../components/MainLayout";
-
-async function getProjectDetails(token: string, projectId: string) {
-  const BASE_URL = "https://hustle-jldf.onrender.com/api/v1";
-  const response = await fetch(`${BASE_URL}/projects/${projectId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) throw new Error("Failed to fetch project details");
-  return response.json();
-}
+import { getProjectDetails } from "../../../lib/apis/auth";
+import { useAuth } from "../../../lib/contexts/AuthContext";
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
   const [projectName, setProjectName] = useState<string>("");
   const [projectLoading, setProjectLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchProject = async () => {
       setProjectLoading(true);
       try {
-        const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No access token found");
         const project = await getProjectDetails(token, projectId);
+        console.log(project, "project in dashboad/project id page");
         setProjectName(project.name || projectId);
       } catch {
         setProjectName(projectId);
@@ -35,12 +27,12 @@ export default function ProjectDetailPage() {
       }
     };
     fetchProject();
-  }, [projectId]);
+  }, [projectId, token]);
 
   return (
     <MainLayout
       breadcrumbs={[
-        { label: "Projects", href: "/" },
+        { label: "Dashboard", href: "/dashboard" },
         { label: projectLoading ? "Loading..." : projectName },
       ]}
     >
@@ -77,6 +69,18 @@ export default function ProjectDetailPage() {
             <span className="text-indigo-600">→</span>
           </div>
           <p className="text-sm">View financial summary and reports</p>
+        </div>
+
+        {/* transactions Card */}
+        <div
+          onClick={() => router.push(`/projects/${projectId}/transactions`)}
+          className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Transactions</h3>
+            <span className="text-indigo-600">→</span>
+          </div>
+          <p className="text-sm">Track and manage transactions</p>
         </div>
       </div>
     </MainLayout>
