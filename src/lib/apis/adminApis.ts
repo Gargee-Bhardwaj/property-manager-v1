@@ -88,7 +88,7 @@ export async function createProjectApi(
 }
 
 export async function getAllProjectsApi(token: string) {
-  const response = await fetch(`${BASE_URL}/projects`, {
+  const response = await fetch(`${BASE_URL}/projects/`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

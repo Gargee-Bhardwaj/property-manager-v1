@@ -103,7 +103,7 @@ export const getPlotTransactionHistory = async (
   plotId: string
 ) => {
   const response = await fetch(
-    `${BASE_URL}/api/v1/plots/${plotId}/transaction-history/`,
+    `${BASE_URL}/plots/${plotId}/transaction-history/`,
     {
       method: "GET",
       headers: {
