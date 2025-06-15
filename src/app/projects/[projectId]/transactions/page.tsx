@@ -135,7 +135,7 @@ export default function TransactionsPage() {
       ]}
     >
       <h2 className="text-2xl font-bold mb-6">
-        Transaction Approvals for Project: {projectId}
+        Transaction Approvals for: {projectName}
       </h2>
 
       {error && (
