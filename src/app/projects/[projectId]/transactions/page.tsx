@@ -221,8 +221,8 @@ export default function TransactionsPage() {
 
       {/* Approval Details Modal */}
       {showApprovalDetailsModal && selectedApproval && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full relative shadow-xl">
+        <div className="fixed inset-0 bg-opacity-50 min-h-[80vh] flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[80vh] overflow-scroll relative shadow-xl mt-20">
             <button
               onClick={() => {
                 setShowApprovalDetailsModal(false);
@@ -241,10 +241,10 @@ export default function TransactionsPage() {
               <p className="text-gray-500">Loading details...</p>
             ) : (
               <div className="space-y-3">
-                <p>
+                {/* <p>
                   <span className="font-medium">Approval ID:</span>{" "}
                   {selectedApproval.id}
-                </p>
+                </p> */}
                 <p>
                   <span className="font-medium">Status:</span>{" "}
                   <span
@@ -300,7 +300,7 @@ export default function TransactionsPage() {
                   </p>
                 )}
 
-                {selectedApproval.target_model_data &&
+                {/* {selectedApproval.target_model_data &&
                   Object.keys(selectedApproval.target_model_data).length >
                     0 && (
                     <>
@@ -320,7 +320,7 @@ export default function TransactionsPage() {
                         )}
                       </ul>
                     </>
-                  )}
+                  )} */}
 
                 {selectedApproval.votes &&
                   selectedApproval.votes.length > 0 && (

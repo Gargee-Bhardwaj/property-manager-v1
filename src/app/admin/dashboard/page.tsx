@@ -18,6 +18,7 @@ export default function AdminDashboardPage() {
   const [projectData, setProjectData] = useState({
     name: "",
     owner_id: "",
+    budget: 0,
   });
   const [userManagement, setUserManagement] = useState<{
     mode: "none" | "create" | "find";
@@ -99,6 +100,16 @@ export default function AdminDashboardPage() {
   }, [token, success, partnerSuccess]);
 
   const handleProjectInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setProjectData({
+      ...projectData,
+      [name]: value,
+    });
+  };
+
+  const handleProjectBudgetChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
@@ -218,6 +229,7 @@ export default function AdminDashboardPage() {
       setProjectData({
         name: "",
         owner_id: "",
+        budget: 0,
       });
       setSelectedOwner(null);
       setUserManagement({
@@ -365,6 +377,21 @@ export default function AdminDashboardPage() {
                   name="name"
                   value={projectData.name}
                   onChange={handleProjectInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  disabled={isCreatingProject}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Project Budget
+                </label>
+                <input
+                  type="number"
+                  name="budget"
+                  value={projectData.budget}
+                  onChange={handleProjectBudgetChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   disabled={isCreatingProject}

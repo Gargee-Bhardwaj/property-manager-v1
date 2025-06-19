@@ -184,6 +184,10 @@ export async function sellPlotApi(
     customer_name: string;
     customer_phone: string;
     customer_email: string;
+    is_emi?: boolean;
+    emi_amount?: number;
+    emi_start_date?: string;
+    emi_frequency_months?: number;
   }
 ) {
   const response = await fetch(`${BASE_URL}/plots/${plotId}/sell`, {
@@ -219,3 +223,35 @@ export async function sellPlotApi(
 //   }
 //   return response.json();
 // };
+
+export async function getPlotEmiDetails(token: string, plotId: string) {
+  const response = await fetch(`${BASE_URL}/plots/${plotId}/emi`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || "Failed to fetch EMI details");
+  }
+
+  return response.json();
+}
+
+export async function markEmiAsPaid(token: string, emiId: string) {
+  const response = await fetch(`${BASE_URL}/emi/${emiId}/pay`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || "Failed to mark EMI as paid");
+  }
+
+  return response.json();
+}
