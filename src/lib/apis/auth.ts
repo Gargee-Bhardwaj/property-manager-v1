@@ -50,7 +50,6 @@ export async function getMyProjectsApi(token: string) {
   }
 
   const data = await response.json();
-  console.log(data, "response in getMyProjectsApi");
   return data;
 }
 
@@ -122,8 +121,6 @@ export async function createPlotApi(
     },
     body: JSON.stringify(plotData),
   });
-
-  console.log("Sending plot data: in api", plotData);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
@@ -225,7 +222,7 @@ export async function sellPlotApi(
 // };
 
 export async function getPlotEmiDetails(token: string, plotId: string) {
-  const response = await fetch(`${BASE_URL}/plots/${plotId}/emi`, {
+  const response = await fetch(`${BASE_URL}/plots/${plotId}/emis`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -239,19 +236,131 @@ export async function getPlotEmiDetails(token: string, plotId: string) {
   return response.json();
 }
 
-export async function markEmiAsPaid(token: string, emiId: string) {
-  const response = await fetch(`${BASE_URL}/emi/${emiId}/pay`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export async function markEmiAsPaid(
+  token: string,
+  plotId: string,
+  emiId: string
+) {
+  const response = await fetch(
+    `${BASE_URL}/plots/${plotId}/emi/${emiId}/mark-as-paid`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
     throw new Error(errorData?.detail || "Failed to mark EMI as paid");
   }
 
+  return response.json();
+}
+
+export async function getProjectPartners(token: string, projectId: string) {
+  const response = await fetch(`${BASE_URL}/projects/${projectId}/partners`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to fetch project partners");
+  }
+  return response.json();
+}
+
+export async function getAmountCollectedByPartner(
+  token: string,
+  projectId: string
+) {
+  const response = await fetch(
+    `${BASE_URL}/projects/${projectId}/plots/summary/amount-collected-by-partner`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || "Failed to fetch amount collected by partner"
+    );
+  }
+  return response.json();
+}
+
+export async function getAmountSpentByPartner(
+  token: string,
+  projectId: string
+) {
+  const response = await fetch(
+    `${BASE_URL}/projects/${projectId}/expenses/summary/amount-spent-by-partner`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || "Failed to fetch amount spent by partner"
+    );
+  }
+  return response.json();
+}
+
+export async function getTransactionApprovals(
+  token: string,
+  projectId: string,
+  partnerId?: string
+) {
+  const url = new URL(
+    `${BASE_URL}/projects/${projectId}/transaction-approvals`
+  );
+  if (partnerId) {
+    url.searchParams.append("partner_id", partnerId);
+  }
+  const response = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || "Failed to fetch transaction approvals"
+    );
+  }
+  return response.json();
+}
+
+export async function voteOnTransactionApprovalApi(
+  token: string,
+  approvalId: string,
+  status: "approved" | "rejected"
+) {
+  const response = await fetch(
+    `${BASE_URL}/transaction-approvals/${approvalId}/vote`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to vote on transaction`);
+  }
   return response.json();
 }

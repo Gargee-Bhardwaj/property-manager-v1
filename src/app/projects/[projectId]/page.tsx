@@ -18,7 +18,6 @@ export default function ProjectDetailPage() {
       try {
         if (!token) throw new Error("No access token found");
         const project = await getProjectDetails(token, projectId);
-        console.log(project, "project in dashboad/project id page");
         setProjectName(project.name || projectId);
       } catch {
         setProjectName(projectId);
@@ -81,6 +80,18 @@ export default function ProjectDetailPage() {
             <span className="text-indigo-600">→</span>
           </div>
           <p className="text-sm">Track and manage transactions</p>
+        </div>
+
+        {/* Partner Details Card */}
+        <div
+          onClick={() => router.push(`/projects/${projectId}/partner-details`)}
+          className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Partner Details</h3>
+            <span className="text-indigo-600">→</span>
+          </div>
+          <p className="text-sm">Track and manage partner details</p>
         </div>
       </div>
     </MainLayout>

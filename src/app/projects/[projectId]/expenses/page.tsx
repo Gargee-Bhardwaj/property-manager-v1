@@ -117,6 +117,19 @@ export default function ExpensesPage() {
     }));
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <MainLayout
       breadcrumbs={[
@@ -128,7 +141,7 @@ export default function ExpensesPage() {
         { label: "Expenses" },
       ]}
     >
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Project Expenses: {projectName}</h2>
         <button
           onClick={() => setShowAddExpenseModal(true)}
@@ -157,31 +170,96 @@ export default function ExpensesPage() {
         ) : expenses.length === 0 ? (
           <p className="text-gray-500">No expenses found for this project.</p>
         ) : (
-          <ul className="space-y-3">
-            {expenses.map((expense) => (
-              <li
-                key={expense.id}
-                className="p-3 border border-gray-200 rounded-md bg-gray-50"
-              >
-                <p className="text-sm font-medium">
-                  Description: {expense.description}
-                </p>
-                <p className="text-xs text-gray-600">
-                  Amount: ${expense.amount.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-600">Type: {expense.type}</p>
-                <p className="text-xs text-gray-600">
-                  Date: {new Date(expense.date).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-gray-600">
-                  Added By:{" "}
-                  {expense.added_by_user?.full_name ||
-                    expense.added_by_user?.email ||
-                    "Unknown"}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Added By
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Description
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Amount
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Type
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Date
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Approved At
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {expenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {expense.added_by_user?.full_name ||
+                        expense.added_by_user?.email ||
+                        "Unknown"}
+                    </td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {expense.description}
+                    </td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                      ₹{expense.amount.toLocaleString()}
+                    </td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {expense.type}
+                    </td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(expense.date).toLocaleDateString()}
+                    </td>
+                    <td className="px-3 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                          expense.transaction_approval_status || ""
+                        )}`}
+                      >
+                        {expense.transaction_approval_status?.toUpperCase() ||
+                          "N/A"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {expense.transaction_approved_at
+                        ? new Date(
+                            expense.transaction_approved_at
+                          ).toLocaleString()
+                        : "N/A"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -261,7 +339,8 @@ export default function ExpensesPage() {
                   <option value="CONSTRUCTION">Construction</option>
                   <option value="MAINTENANCE">Maintenance</option>
                   <option value="UTILITIES">Utilities</option>
-                  <option value="ADMINISTRATIVE">Administrative</option>
+                  <option value="GOVT_EXPENSE">Govt Expenses</option>
+                  <option value="BANK">Bank</option>
                   <option value="OTHER">Other</option>
                 </select>
               </div>

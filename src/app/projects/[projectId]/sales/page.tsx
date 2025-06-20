@@ -86,6 +86,11 @@ export default function SalesPage() {
   const [loadingEmiDetails, setLoadingEmiDetails] = useState(false);
   const [emiError, setEmiError] = useState<string | null>(null);
 
+  // client side pagination
+  const [currentPage, setCurrentPage] = useState(0);
+  const plotsPerPage = 20;
+  const [displayedPlots, setDisplayedPlots] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchProject = async () => {
       if (authLoading) return; // Wait until auth is loaded
@@ -104,9 +109,28 @@ export default function SalesPage() {
     fetchProject();
   }, [projectId, token, authLoading]);
 
+  // useEffect(() => {
+  //   const fetchPlots = async () => {
+  //     if (authLoading) return; // Wait until auth is loaded
+
+  //     setLoading(true);
+  //     setError(null);
+  //     try {
+  //       if (!token) throw new Error("No access token found");
+  //       const response = await getProjectPlotsApi(token, projectId);
+  //       setPlots(response.data || []);
+  //     } catch (err: any) {
+  //       setError(err.message || "Failed to fetch plots");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchPlots();
+  // }, [projectId, setPlots, token, authLoading]);
+
   useEffect(() => {
     const fetchPlots = async () => {
-      if (authLoading) return; // Wait until auth is loaded
+      if (authLoading) return;
 
       setLoading(true);
       setError(null);
@@ -114,6 +138,8 @@ export default function SalesPage() {
         if (!token) throw new Error("No access token found");
         const response = await getProjectPlotsApi(token, projectId);
         setPlots(response.data || []);
+        // Initialize displayed plots with first page
+        setDisplayedPlots(response.data.slice(0, plotsPerPage) || []);
       } catch (err: any) {
         setError(err.message || "Failed to fetch plots");
       } finally {
@@ -123,7 +149,13 @@ export default function SalesPage() {
     fetchPlots();
   }, [projectId, setPlots, token, authLoading]);
 
-  console.log(plots, "plots in sales page");
+  useEffect(() => {
+    if (plots.length > 0) {
+      const startIndex = currentPage * plotsPerPage;
+      const endIndex = startIndex + plotsPerPage;
+      setDisplayedPlots(plots.slice(startIndex, endIndex));
+    }
+  }, [plots, currentPage]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -327,22 +359,6 @@ export default function SalesPage() {
       if (!token) throw new Error("No access token found");
       if (!selectedPlot) throw new Error("No plot selected");
 
-      if (sellFormData.is_emi) {
-        const remaining =
-          selectedPlot.price - Number(sellFormData.amount_collected);
-        const calculatedInstallments = Math.ceil(
-          remaining / Number(sellFormData.emi_amount)
-        );
-
-        if (
-          calculatedInstallments !== Number(sellFormData.emi_frequency_months)
-        ) {
-          throw new Error(
-            "EMI calculation mismatch. Please check your amounts."
-          );
-        }
-      }
-
       const sellData = {
         amount_collected: Number(sellFormData.amount_collected),
         sold_on_date: sellFormData.sold_on_date,
@@ -433,42 +449,13 @@ export default function SalesPage() {
   const handleSellFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    setSellFormData((prev) => {
-      // Create base update
-      const updated = {
-        ...prev,
-        [name]: value,
-      };
-
-      // Only calculate if we have a selected plot
-      if (!selectedPlot) return updated;
-
-      // Convert relevant values to numbers
-      const plotPrice = selectedPlot.price;
-      const collected =
-        name === "amount_collected"
-          ? Number(value) || 0
-          : Number(prev.amount_collected) || 0;
-      const emiAmount =
-        name === "emi_amount"
-          ? Number(value) || 0
-          : Number(prev.emi_amount) || 0;
-
-      // Calculate remaining amount
-      const remaining = plotPrice - collected;
-      updated.remaining_amount = remaining;
-
-      // Auto-calculate EMI frequency when relevant fields change
-      if (
-        prev.is_emi &&
-        (name === "emi_amount" || name === "amount_collected") &&
-        emiAmount > 0
-      ) {
-        updated.emi_frequency_months = Math.ceil(remaining / emiAmount);
-      }
-
-      return updated;
-    });
+    setSellFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "amount_collected" && {
+        remaining_amount: selectedPlot ? selectedPlot.price - Number(value) : 0,
+      }),
+    }));
   };
 
   const handleViewTransactionHistory = async () => {
@@ -495,7 +482,8 @@ export default function SalesPage() {
   const handleMarkEmiAsPaid = async (emiId: string) => {
     try {
       if (!token) throw new Error("No access token found");
-      await markEmiAsPaid(token, emiId);
+      if (!selectedPlot) throw new Error("No plot selected");
+      await markEmiAsPaid(token, selectedPlot.id, emiId);
 
       // Refresh EMI details
       if (selectedPlot) {
@@ -510,7 +498,29 @@ export default function SalesPage() {
     }
   };
 
-  console.log(transactionHistory, "transaction history");
+  // pagination
+
+  const handleNextPage = () => {
+    const nextPage = currentPage + 1;
+    const startIndex = nextPage * plotsPerPage;
+    const endIndex = startIndex + plotsPerPage;
+
+    if (startIndex < plots.length) {
+      setDisplayedPlots(plots.slice(startIndex, endIndex));
+      setCurrentPage(nextPage);
+    }
+  };
+
+  const handlePrevPage = () => {
+    const prevPage = currentPage - 1;
+    if (prevPage >= 0) {
+      const startIndex = prevPage * plotsPerPage;
+      const endIndex = startIndex + plotsPerPage;
+      setDisplayedPlots(plots.slice(startIndex, endIndex));
+      setCurrentPage(prevPage);
+    }
+  };
+
   return (
     <MainLayout
       breadcrumbs={[
@@ -543,7 +553,7 @@ export default function SalesPage() {
         onSubmit={handleCreatePlot}
       />
 
-      {loading ? (
+      {/* {loading ? (
         <div>Loading plots...</div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
@@ -565,7 +575,65 @@ export default function SalesPage() {
             </div>
           ))}
         </div>
+      )} */}
+
+      {loading ? (
+        <div>Loading plots...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : displayedPlots.length === 0 ? (
+        <div>No plots found.</div>
+      ) : (
+        <div className="relative pb-10">
+          <div className="flex flex-wrap gap-4 mb-4">
+            {displayedPlots.map((plot) => (
+              <div
+                key={plot.id}
+                className={`p-4 rounded-lg shadow-sm border-2 cursor-pointer min-w-[100px] text-center text-lg font-bold ${getStatusColor(
+                  plot.plot_status
+                )} ${
+                  selectedPlot?.id === plot.id ? "ring-2 ring-indigo-500" : ""
+                }`}
+                onClick={() => handlePlotClick(plot)}
+              >
+                Plot #{plot.number}
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-between w-full items-center mt-4 absolute bottom-2">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 0}
+              className={`px-4 py-2 rounded-md ${
+                currentPage === 0
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700"
+              }`}
+            >
+              Previous
+            </button>
+
+            <span className="text-sm text-gray-600">
+              Page {currentPage + 1} of {Math.ceil(plots.length / plotsPerPage)}
+            </span>
+
+            <button
+              onClick={handleNextPage}
+              disabled={(currentPage + 1) * plotsPerPage >= plots.length}
+              className={`px-4 py-2 rounded-md ${
+                (currentPage + 1) * plotsPerPage >= plots.length
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700"
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
+
       {selectedPlot && (
         <PlotDetailsModal
           show={!!selectedPlot}

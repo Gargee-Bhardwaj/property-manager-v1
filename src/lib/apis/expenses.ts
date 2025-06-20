@@ -21,6 +21,8 @@ export interface Expense {
   };
   created_at: string;
   updated_at: string;
+  transaction_approval_status?: string;
+  transaction_approved_at?: string;
 }
 
 export async function getExpensesApi(

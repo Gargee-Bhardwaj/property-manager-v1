@@ -84,8 +84,6 @@ export default function TransactionsPage() {
     fetchTransactions();
   }, [projectId, token, success]); // Re-fetch on project change (via URL) or successful vote
 
-  console.log(transactionsToApprove, "transactions to approve");
-
   const handleViewApprovalDetails = async (approvalId: string) => {
     setLoadingApprovalDetails(true);
     setError(null);

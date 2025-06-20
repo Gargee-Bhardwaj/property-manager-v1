@@ -10,12 +10,14 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.0",
+    "@types/recharts": "^1.8.29",
     "jotai": "^2.12.5",
     "lucide-react": "^0.514.0",
     "next": "^15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.57.0",
+    "recharts": "^2.15.3",
     "zod": "^3.25.56"
   },
   "devDependencies": {

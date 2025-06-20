@@ -17,6 +17,12 @@ interface PlotDetailsModalProps {
     emi_start_date?: string;
     transaction_approval_status?: string;
     transaction_approved_at?: string;
+    sold_by_user?: {
+      id: string;
+      full_name: string;
+      email: string;
+      phone: string;
+    };
   };
   onClose: () => void;
   onEditClick: () => void;
@@ -165,12 +171,9 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
                   : "N/A"}
               </p>
               <p>
-                <span className="font-medium">Customer ID:</span>{" "}
-                {plot.customer_id || "N/A"}
-              </p>
-              <p>
                 <span className="font-medium">Sold By:</span>{" "}
-                {plot.sold_by_user_id || "N/A"}
+                {`${plot.sold_by_user?.full_name} | ${plot.sold_by_user?.email} | ${plot.sold_by_user?.phone}` ||
+                  "N/A"}
               </p>
             </>
           ) : (
@@ -231,7 +234,7 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
 
         {/* mark emi paid */}
         {plot.is_emi && (
-          <div className="mt-6">
+          <div className="mt-6 w-full col-span-full">
             <h3 className="font-semibold text-lg border-b pb-2 mb-4">
               EMI Schedule
             </h3>
@@ -242,7 +245,7 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
             ) : emiDetails.length === 0 ? (
               <div>No EMI details found</div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-y-auto max-h-[400px] w-full">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
