@@ -11,6 +11,29 @@ import {
 } from "../../../../lib/apis/transactions";
 import { getProjectDetails } from "../../../../lib/apis/auth";
 
+// Type definition for a transaction
+interface Transaction {
+  id: string;
+  target_model: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  initiated_by?: {
+    full_name?: string;
+    email?: string;
+  };
+  votes?: any[]; // Keep flexible for now
+  field_values?: any;
+  approved_at?: string;
+}
+
+interface TransactionApiResponse {
+  data: Transaction[];
+}
+
+interface ProjectDetails {
+  name: string;
+}
+
 export default function TransactionsPage() {
   const { token, isLoading: authLoading } = useAuth();
   const params = useParams();
@@ -18,20 +41,22 @@ export default function TransactionsPage() {
   const [projectLoading, setProjectLoading] = useState(true);
   const [projectName, setProjectName] = useState<string>("");
 
-  const [transactionsCreatedByMe, setTransactionsCreatedByMe] = useState<any[]>(
-    []
-  );
-  const [transactionsToApprove, setTransactionsToApprove] = useState<any[]>([]);
+  const [transactionsCreatedByMe, setTransactionsCreatedByMe] = useState<
+    Transaction[]
+  >([]);
+  const [transactionsToApprove, setTransactionsToApprove] = useState<
+    Transaction[]
+  >([]);
 
-  const [loadingCreatedByMe, setLoadingCreatedByMe] = useState(false);
-  const [loadingToApprove, setLoadingToApprove] = useState(false);
-  const [loadingApprovalDetails, setLoadingApprovalDetails] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const [selectedApproval, setSelectedApproval] = useState<any | null>(null);
+  const [selectedApproval, setSelectedApproval] = useState<Transaction | null>(
+    null
+  );
   const [showApprovalDetailsModal, setShowApprovalDetailsModal] =
     useState(false);
 
@@ -42,8 +67,11 @@ export default function TransactionsPage() {
       setProjectLoading(true);
       try {
         if (!token) throw new Error("No access token found");
-        const project = await getProjectDetails(token, projectId);
-        setProjectName(project.name || projectId);
+        const project = (await getProjectDetails(
+          token,
+          projectId
+        )) as ProjectDetails;
+        setProjectName(project?.name || projectId);
       } catch {
         setProjectName(projectId);
       } finally {
@@ -57,27 +85,25 @@ export default function TransactionsPage() {
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!projectId || !token) return;
-
-      // Fetch Created by Me
-      setLoadingCreatedByMe(true);
+      setLoading(true);
+      setError(null);
       try {
-        const data = await getTransactionsCreatedByMeApi(token, projectId);
-        setTransactionsCreatedByMe(data.data || []);
+        const [createdByMeRes, toApproveRes] = await Promise.all([
+          getTransactionsCreatedByMeApi(
+            token,
+            projectId
+          ) as Promise<TransactionApiResponse>,
+          getTransactionsToApproveApi(
+            token,
+            projectId
+          ) as Promise<TransactionApiResponse>,
+        ]);
+        setTransactionsCreatedByMe(createdByMeRes?.data || []);
+        setTransactionsToApprove(toApproveRes?.data || []);
       } catch (err: any) {
-        setError(err.message || "Failed to fetch 'created by me' transactions");
+        setError(err.message || "Failed to fetch transactions");
       } finally {
-        setLoadingCreatedByMe(false);
-      }
-
-      // Fetch To Approve
-      setLoadingToApprove(true);
-      try {
-        const data = await getTransactionsToApproveApi(token, projectId);
-        setTransactionsToApprove(data.data || []);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch 'to approve' transactions");
-      } finally {
-        setLoadingToApprove(false);
+        setLoading(false);
       }
     };
 
@@ -85,37 +111,41 @@ export default function TransactionsPage() {
   }, [projectId, token, success]); // Re-fetch on project change (via URL) or successful vote
 
   const handleViewApprovalDetails = async (approvalId: string) => {
-    setLoadingApprovalDetails(true);
+    setLoading(true);
     setError(null);
     try {
       if (!token) throw new Error("No access token found");
-      const details = await getTransactionApprovalDetailsApi(token, approvalId);
+      const details = (await getTransactionApprovalDetailsApi(
+        token,
+        approvalId
+      )) as Transaction;
       setSelectedApproval(details);
       setShowApprovalDetailsModal(true);
     } catch (err: any) {
       setError(err.message || "Failed to fetch approval details");
     } finally {
-      setLoadingApprovalDetails(false);
+      setLoading(false);
     }
   };
 
-  const handleVote = async (status: "approved" | "rejected") => {
+  const handleVote = async (approvalStatus: "approved" | "rejected") => {
     if (!selectedApproval) return;
     setIsVoting(true);
     setSuccess(null);
     setError(null);
     try {
       if (!token) throw new Error("No access token found");
-      await voteOnTransactionApprovalApi(token, selectedApproval.id, status);
-      setSuccess(`Transaction ${status} successfully!`);
+      await voteOnTransactionApprovalApi(
+        token,
+        selectedApproval.id,
+        approvalStatus
+      );
+      setSuccess(`Transaction ${approvalStatus} successfully!`);
       setShowApprovalDetailsModal(false);
       setSelectedApproval(null);
-      // Trigger re-fetch of transaction lists by clearing them and letting useEffect run
-      setTransactionsCreatedByMe([]);
-      setTransactionsToApprove([]);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err.message || `Failed to ${status} transaction`);
+      setError(err.message || `Failed to ${approvalStatus} transaction`);
     } finally {
       setIsVoting(false);
     }
@@ -153,7 +183,7 @@ export default function TransactionsPage() {
           <h3 className="text-lg font-semibold mb-4">
             Transactions Created by Me
           </h3>
-          {loadingCreatedByMe ? (
+          {loading ? (
             <p className="text-gray-500">Loading transactions...</p>
           ) : transactionsCreatedByMe.length === 0 ? (
             <p className="text-gray-500">
@@ -182,7 +212,7 @@ export default function TransactionsPage() {
           <h3 className="text-lg font-semibold mb-4">
             Transactions to Approve
           </h3>
-          {loadingToApprove ? (
+          {loading ? (
             <p className="text-gray-500">Loading transactions...</p>
           ) : transactionsToApprove.length === 0 ? (
             <p className="text-gray-500">
@@ -235,14 +265,10 @@ export default function TransactionsPage() {
               Transaction Approval Details
             </h3>
 
-            {loadingApprovalDetails ? (
+            {loading ? (
               <p className="text-gray-500">Loading details...</p>
             ) : (
               <div className="space-y-3">
-                {/* <p>
-                  <span className="font-medium">Approval ID:</span>{" "}
-                  {selectedApproval.id}
-                </p> */}
                 <p>
                   <span className="font-medium">Status:</span>{" "}
                   <span
@@ -279,7 +305,8 @@ export default function TransactionsPage() {
                 )}
 
                 <h4 className="font-semibold text-md mt-4">Field Values:</h4>
-                {Object.keys(selectedApproval.field_values).length > 0 ? (
+                {selectedApproval.field_values &&
+                Object.keys(selectedApproval.field_values).length > 0 ? (
                   <ul className="list-disc list-inside ml-4 space-y-1">
                     {Object.entries(selectedApproval.field_values).map(
                       ([key, value]) => (
@@ -297,29 +324,6 @@ export default function TransactionsPage() {
                     No specific field values.
                   </p>
                 )}
-
-                {/* {selectedApproval.target_model_data &&
-                  Object.keys(selectedApproval.target_model_data).length >
-                    0 && (
-                    <>
-                      <h4 className="font-semibold text-md mt-4">
-                        Target Model Data:
-                      </h4>
-                      <ul className="list-disc list-inside ml-4 space-y-1">
-                        {Object.entries(selectedApproval.target_model_data).map(
-                          ([key, value]) => (
-                            <li key={key} className="text-sm">
-                              <span className="font-medium">
-                                {key.replace(/_/g, " ")}:
-                              </span>{" "}
-                              {String(value)}
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </>
-                  )} */}
-
                 {selectedApproval.votes &&
                   selectedApproval.votes.length > 0 && (
                     <>

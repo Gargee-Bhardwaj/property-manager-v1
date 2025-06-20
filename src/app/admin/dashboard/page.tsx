@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
       setIsFetchingProjects(true);
       try {
         if (!token) return;
-        const data = await getAllProjectsApi(token);
+        const data = (await getAllProjectsApi(token)) as { data: any[] };
         setProjects(data.data || []);
       } catch (err) {
         console.error("Failed to fetch projects:", err);
@@ -146,14 +146,14 @@ export default function AdminDashboardPage() {
     try {
       if (!token) throw new Error("Not authenticated");
 
-      const newUser = await createUserApi(token, {
+      const newUser = (await createUserApi(token, {
         email: userManagement.email,
         password: userManagement.password,
         full_name: userManagement.full_name,
         phone: userManagement.phone,
         is_active: userManagement.is_active,
         is_superuser: userManagement.is_superuser,
-      });
+      })) as { id: string };
 
       setSuccess("User created successfully!");
       setProjectData({

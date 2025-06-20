@@ -10,6 +10,14 @@ import {
   Expense,
 } from "../../../../lib/apis/expenses";
 
+interface ProjectDetails {
+  name: string;
+}
+
+interface ExpensesApiResponse {
+  data: Expense[];
+}
+
 export default function ExpensesPage() {
   const { token, isLoading: authLoading } = useAuth();
   const params = useParams();
@@ -39,8 +47,11 @@ export default function ExpensesPage() {
       setProjectLoading(true);
       try {
         if (!token) throw new Error("No access token found");
-        const project = await getProjectDetails(token, projectId);
-        setProjectName(project.name || projectId);
+        const project = (await getProjectDetails(
+          token,
+          projectId
+        )) as ProjectDetails;
+        setProjectName(project?.name || projectId);
       } catch {
         setProjectName(projectId);
       } finally {
@@ -56,8 +67,11 @@ export default function ExpensesPage() {
 
       setLoadingExpenses(true);
       try {
-        const data = await getExpensesApi(token, projectId);
-        setExpenses(data.data || []);
+        const data = (await getExpensesApi(
+          token,
+          projectId
+        )) as ExpensesApiResponse;
+        setExpenses(data?.data || []);
       } catch (err: any) {
         setError(err.message || "Failed to fetch expenses");
       } finally {

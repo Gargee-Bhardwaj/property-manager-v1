@@ -10,6 +10,11 @@ import {
   getMyProjectsApi,
   getPlotEmiDetails,
   markEmiAsPaid,
+  addAmountToPlotApi,
+  generateUploadUrlApi,
+  associatePlotDocumentApi,
+  uploadFile,
+  getPlotDocumentsApi,
 } from "../../../../lib/apis/auth";
 import MainLayout from "../../../../components/MainLayout";
 import { useAtom } from "jotai";
@@ -21,6 +26,31 @@ import { EditPlotModal } from "../../../../components/modals/EditPlotModal";
 import { SellPlotModal } from "../../../../components/modals/SellPlotModal";
 import { TransactionHistoryModal } from "../../../../components/modals/TransactionHistoryModal";
 import { PlotDetailsModal } from "../../../../components/modals/PlotDetailsModal";
+import { AddAmountModal } from "../../../../components/modals/AddAmountModal";
+import { UploadDocumentModal } from "../../../../components/modals/UploadDocumentModal";
+import {
+  ViewDocumentsModal,
+  PlotDocument,
+} from "../../../../components/modals/ViewDocumentsModal";
+
+// Add interfaces for type safety
+interface Plot {
+  id: string;
+  number: number;
+  plot_status: string;
+  area: number;
+  price: number;
+  is_emi: boolean;
+  amount_collected: number;
+}
+
+interface ProjectDetails {
+  name: string;
+}
+
+interface ApiResponse<T> {
+  data: T;
+}
 
 export default function SalesPage() {
   const params = useParams();
@@ -28,7 +58,7 @@ export default function SalesPage() {
   const [plots, setPlots] = useAtom(plotsAtom);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlot, setSelectedPlot] = useState<any | null>(null);
+  const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
   const [projectName, setProjectName] = useState<string>("");
   const [projectLoading, setProjectLoading] = useState(true);
   //p plot states
@@ -86,10 +116,27 @@ export default function SalesPage() {
   const [loadingEmiDetails, setLoadingEmiDetails] = useState(false);
   const [emiError, setEmiError] = useState<string | null>(null);
 
+  // Add Amount state
+  const [showAddAmountModal, setShowAddAmountModal] = useState(false);
+  const [isSubmittingAmount, setIsSubmittingAmount] = useState(false);
+  const [addAmountError, setAddAmountError] = useState<string | null>(null);
+
+  // Upload Document state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+
+  // View Documents state
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [documents, setDocuments] = useState<PlotDocument[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [documentsError, setDocumentsError] = useState<string | null>(null);
+
   // client side pagination
   const [currentPage, setCurrentPage] = useState(0);
   const plotsPerPage = 20;
-  const [displayedPlots, setDisplayedPlots] = useState<any[]>([]);
+  const [displayedPlots, setDisplayedPlots] = useState<Plot[]>([]);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -98,8 +145,11 @@ export default function SalesPage() {
       setProjectLoading(true);
       try {
         if (!token) throw new Error("No access token found");
-        const project = await getProjectDetails(token, projectId);
-        setProjectName(project.name || projectId);
+        const project = (await getProjectDetails(
+          token,
+          projectId
+        )) as ProjectDetails;
+        setProjectName(project?.name || projectId);
       } catch {
         setProjectName(projectId);
       } finally {
@@ -109,25 +159,6 @@ export default function SalesPage() {
     fetchProject();
   }, [projectId, token, authLoading]);
 
-  // useEffect(() => {
-  //   const fetchPlots = async () => {
-  //     if (authLoading) return; // Wait until auth is loaded
-
-  //     setLoading(true);
-  //     setError(null);
-  //     try {
-  //       if (!token) throw new Error("No access token found");
-  //       const response = await getProjectPlotsApi(token, projectId);
-  //       setPlots(response.data || []);
-  //     } catch (err: any) {
-  //       setError(err.message || "Failed to fetch plots");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetchPlots();
-  // }, [projectId, setPlots, token, authLoading]);
-
   useEffect(() => {
     const fetchPlots = async () => {
       if (authLoading) return;
@@ -136,10 +167,12 @@ export default function SalesPage() {
       setError(null);
       try {
         if (!token) throw new Error("No access token found");
-        const response = await getProjectPlotsApi(token, projectId);
-        setPlots(response.data || []);
-        // Initialize displayed plots with first page
-        setDisplayedPlots(response.data.slice(0, plotsPerPage) || []);
+        const response = (await getProjectPlotsApi(
+          token,
+          projectId
+        )) as ApiResponse<Plot[]>;
+        setPlots(response?.data || []);
+        setDisplayedPlots(response?.data?.slice(0, plotsPerPage) || []);
       } catch (err: any) {
         setError(err.message || "Failed to fetch plots");
       } finally {
@@ -170,7 +203,7 @@ export default function SalesPage() {
     }
   };
 
-  const handlePlotClick = async (plot: any) => {
+  const handlePlotClick = async (plot: Plot) => {
     setSelectedPlot(plot);
     setLoadingEmiDetails(true);
     setEmiError(null);
@@ -178,8 +211,11 @@ export default function SalesPage() {
     try {
       if (!token) throw new Error("No access token found");
       if (plot.is_emi) {
-        const response = await getPlotEmiDetails(token, plot.id);
-        setEmiDetails(response.data || []);
+        const response = (await getPlotEmiDetails(
+          token,
+          plot.id
+        )) as ApiResponse<any[]>;
+        setEmiDetails(response?.data || []);
       } else {
         setEmiDetails([]);
       }
@@ -226,11 +262,12 @@ export default function SalesPage() {
       await createPlotApi(token, projectId, plotData);
       setCreatePlotSuccess("Plot created successfully!");
 
-      // Refresh plots list
-      const response = await getProjectPlotsApi(token, projectId);
-      setPlots(response.data || []);
+      const response = (await getProjectPlotsApi(
+        token,
+        projectId
+      )) as ApiResponse<Plot[]>;
+      setPlots(response?.data || []);
 
-      // Reset form
       setPlotFormData({
         plot_status: "available",
         area: "",
@@ -238,7 +275,6 @@ export default function SalesPage() {
         number_of_plots: "1",
       });
 
-      // Close modal after 1.5 seconds
       setTimeout(() => {
         setShowCreatePlotModal(false);
         setCreatePlotSuccess(null);
@@ -248,8 +284,8 @@ export default function SalesPage() {
     }
   };
 
-  // Add this handler function
-  const handleEditPlotClick = (plot: any) => {
+  const handleEditPlotClick = (plot: Plot) => {
+    setSelectedPlot(plot);
     setEditPlotFormData({
       plot_status: plot.plot_status,
       area: plot.area.toString(),
@@ -258,18 +294,17 @@ export default function SalesPage() {
     setShowEditPlotModal(true);
   };
 
-  // Add this submit handler
   const handleEditPlotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditPlotError(null);
     setEditPlotSuccess(null);
+    if (!selectedPlot) return;
 
     try {
       if (!token) throw new Error("No access token found");
-      if (!selectedPlot) throw new Error("No plot selected");
 
       const plotData = {
-        ...editPlotFormData,
+        plot_status: editPlotFormData.plot_status,
         area: Number(editPlotFormData.area),
         price: Number(editPlotFormData.price),
       };
@@ -277,23 +312,17 @@ export default function SalesPage() {
       await updatePlotApi(token, selectedPlot.id, plotData);
       setEditPlotSuccess("Plot updated successfully!");
 
-      // Refresh plots list
-      const response = await getProjectPlotsApi(token, projectId);
-      setPlots(response.data || []);
+      const response = (await getProjectPlotsApi(
+        token,
+        projectId
+      )) as ApiResponse<Plot[]>;
+      setPlots(response?.data || []);
 
-      // Update the selected plot with new data
-      const updatedPlot = response.data.find(
-        (plot: any) => plot.id === selectedPlot.id
-      );
-      if (updatedPlot) {
-        setSelectedPlot(updatedPlot);
-      }
-
-      // Close modal after 1.5 seconds
       setTimeout(() => {
         setShowEditPlotModal(false);
         setEditPlotSuccess(null);
-      }, 1000);
+        handleCloseDetails();
+      }, 1500);
     } catch (err: any) {
       setEditPlotError(err.message || "Failed to update plot");
     }
@@ -309,217 +338,246 @@ export default function SalesPage() {
     }));
   };
 
-  // Add this to your fetchProject useEffect to get user role
-  useEffect(() => {
-    const fetchProject = async () => {
-      setProjectLoading(true);
-      try {
-        if (!token) throw new Error("No access token found");
-        const project = await getProjectDetails(token, projectId);
-        setProjectName(project.name || projectId);
-
-        // Get user role for this project
-        const myProjects = await getMyProjectsApi(token);
-        const currentProject = myProjects.data.find(
-          (p: any) => p.id === projectId
-        );
-      } catch {
-        setProjectName(projectId);
-      } finally {
-        setProjectLoading(false);
-      }
-    };
-    fetchProject();
-  }, [projectId, token]);
-
-  // Add this handler function
   const handleSellPlotClick = () => {
-    setSellFormData({
-      amount_collected: selectedPlot?.price.toString() || "",
-      sold_on_date: new Date().toISOString().split("T")[0],
-      customer_name: "",
-      customer_phone: "",
-      customer_email: "",
-      is_emi: false,
-      emi_amount: undefined,
-      emi_start_date: new Date().toISOString().split("T")[0],
-      emi_frequency_months: undefined,
-      remaining_amount: 0,
-    });
+    if (selectedPlot) {
+      setSellFormData({
+        ...sellFormData,
+        amount_collected: selectedPlot.price.toString(),
+        remaining_amount: selectedPlot.price,
+      });
+    }
     setShowSellPlotForm(true);
   };
 
-  // Add this submit handler
   const handleSellPlotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSellPlotError(null);
     setSellPlotSuccess(null);
+    if (!selectedPlot) return;
+    if (!token) {
+      setSellPlotError("No access token found. Please log in.");
+      return;
+    }
+
+    const {
+      amount_collected,
+      sold_on_date,
+      customer_name,
+      customer_phone,
+      customer_email,
+      is_emi,
+      emi_amount,
+      emi_start_date,
+      emi_frequency_months,
+    } = sellFormData;
+
+    const sellData: any = {
+      amount_collected: Number(amount_collected),
+      sold_on_date,
+      customer_name,
+      customer_phone,
+      customer_email,
+      is_emi,
+    };
+
+    if (is_emi) {
+      sellData.emi_amount = Number(emi_amount);
+      sellData.emi_start_date = emi_start_date;
+      sellData.emi_frequency_months = Number(emi_frequency_months);
+    }
 
     try {
-      if (!token) throw new Error("No access token found");
-      if (!selectedPlot) throw new Error("No plot selected");
-
-      const sellData = {
-        amount_collected: Number(sellFormData.amount_collected),
-        sold_on_date: sellFormData.sold_on_date,
-        customer_name: sellFormData.customer_name,
-        customer_phone: sellFormData.customer_phone,
-        customer_email: sellFormData.customer_email,
-        is_emi: sellFormData.is_emi || undefined,
-        ...(sellFormData.is_emi && {
-          emi_amount: Number(sellFormData.emi_amount),
-          emi_start_date: sellFormData.emi_start_date,
-          emi_frequency_months: Number(sellFormData.emi_frequency_months),
-        }),
-      };
-
       await sellPlotApi(token, selectedPlot.id, sellData);
       setSellPlotSuccess("Plot sold successfully!");
 
-      // Refresh plots list
-      const response = await getProjectPlotsApi(token, projectId);
-      setPlots(response.data || []);
+      const response = (await getProjectPlotsApi(
+        token,
+        projectId
+      )) as ApiResponse<Plot[]>;
+      setPlots(response?.data || []);
 
-      // Update the selected plot with new data
-      const updatedPlot = response.data.find(
-        (plot: any) => plot.id === selectedPlot.id
-      );
-      if (updatedPlot) {
-        setSelectedPlot(updatedPlot);
-      }
-
-      // Close form after 1.5 seconds
       setTimeout(() => {
         setShowSellPlotForm(false);
-        setSellPlotSuccess("");
+        setSellPlotSuccess(null);
+        handleCloseDetails();
       }, 1500);
     } catch (err: any) {
       setSellPlotError(err.message || "Failed to sell plot");
     }
   };
 
-  // Memoized calculation function
-  const calculateInstallments = useCallback(
-    (price: number, collected: number, emiAmount: number) =>
-      Math.ceil((price - collected) / emiAmount),
-    []
-  );
-
-  // More efficient handler
-
-  // const handleSellFormChange = useCallback(
-  //   (e: React.ChangeEvent<HTMLInputElement>) => {
-  //     const { name, value } = e.target;
-
-  //     setSellFormData((prev) => {
-  //       // Early return if no plot selected
-  //       if (!selectedPlot) return { ...prev, [name]: value };
-
-  //       const plotPrice = selectedPlot.price;
-  //       const collected =
-  //         name === "amount_collected"
-  //           ? Number(value) || 0
-  //           : Number(prev.amount_collected) || 0;
-
-  //       const emiAmount =
-  //         name === "emi_amount"
-  //           ? Number(value) || 0
-  //           : Number(prev.emi_amount) || 0;
-
-  //       // Calculate once
-  //       const remaining = plotPrice - collected;
-  //       const shouldCalculateEMI =
-  //         prev.is_emi &&
-  //         (name === "emi_amount" || name === "amount_collected") &&
-  //         emiAmount > 0;
-
-  //       return {
-  //         ...prev,
-  //         [name]: value,
-  //         remaining_amount: remaining,
-  //         emi_frequency_months: shouldCalculateEMI
-  //           ? calculateInstallments(plotPrice, collected, emiAmount)
-  //           : prev.emi_frequency_months,
-  //       };
-  //     });
-  //   },
-  //   [selectedPlot, calculateInstallments]
-  // );
-
   const handleSellFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
-    setSellFormData((prev) => ({
-      ...prev,
-      [name]: value,
-      ...(name === "amount_collected" && {
-        remaining_amount: selectedPlot ? selectedPlot.price - Number(value) : 0,
-      }),
-    }));
+    const { name, value, type, checked } = e.target;
+    if (name === "is_emi") {
+      setSellFormData((prev) => ({
+        ...prev,
+        is_emi: checked,
+        emi_amount: undefined,
+        emi_frequency_months: undefined,
+      }));
+    } else {
+      setSellFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleViewTransactionHistory = async () => {
     if (!selectedPlot) return;
-
     setTransactionHistoryLoading(true);
     setTransactionHistoryError(null);
-
     try {
       if (!token) throw new Error("No access token found");
-      const history = await getPlotTransactionHistory(token, selectedPlot.id);
-      setTransactionHistory(history.data || []);
+      const history = (await getPlotTransactionHistory(
+        token,
+        selectedPlot.id
+      )) as ApiResponse<any[]>;
+      setTransactionHistory(history?.data || []);
       setShowTransactionHistory(true);
     } catch (err: any) {
       setTransactionHistoryError(
-        err.message || "Failed to load transaction history"
+        err.message || "Failed to fetch transaction history"
       );
-      console.log(err);
     } finally {
       setTransactionHistoryLoading(false);
     }
   };
 
+  const handleAddAmount = async (amount: number) => {
+    if (!selectedPlot || !token) return;
+    setIsSubmittingAmount(true);
+    setAddAmountError(null);
+    try {
+      await addAmountToPlotApi(token, selectedPlot.id, amount);
+      setShowAddAmountModal(false);
+      // Refresh plot data
+      const response = (await getProjectPlotsApi(
+        token,
+        projectId
+      )) as ApiResponse<Plot[]>;
+      setPlots(response?.data || []);
+    } catch (err: any) {
+      setAddAmountError(err.message || "Failed to add amount.");
+    } finally {
+      setIsSubmittingAmount(false);
+    }
+  };
+
+  const handleUploadDocument = async (file: File) => {
+    if (!selectedPlot || !token) {
+      console.error("Upload Error: No selected plot or token available.");
+      return;
+    }
+
+    console.log("--- Starting file upload process ---");
+    console.log("1. Selected file:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+    console.log("2. Target Plot ID:", selectedPlot.id);
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    try {
+      console.log("3. Requesting pre-signed upload URL from the backend...");
+      const response = (await generateUploadUrlApi(
+        token,
+        file.name,
+        file.type
+      )) as { upload_url: string; unique_key: string };
+      console.log("4. Received response from backend:", response);
+
+      if (!response || !response.upload_url || !response.unique_key) {
+        throw new Error(
+          "Backend did not return a valid upload URL or unique key."
+        );
+      }
+      const { upload_url, unique_key } = response;
+      console.log("   - Extracted Upload URL:", upload_url);
+      console.log("   - Extracted Unique Key:", unique_key);
+
+      console.log(
+        "5. Uploading file directly to the pre-signed URL via PUT request..."
+      );
+      await uploadFile(upload_url, file);
+      console.log("6. File successfully uploaded to storage.");
+
+      console.log("7. Associating uploaded file with the plot...");
+      await associatePlotDocumentApi(token, selectedPlot.id, unique_key);
+      console.log("8. File successfully associated with the plot.");
+
+      setUploadSuccess("File uploaded successfully!");
+      // Adding a small delay to show success message before closing.
+      setTimeout(() => {
+        setShowUploadModal(false);
+        setUploadSuccess(null);
+      }, 1500);
+    } catch (err: any) {
+      console.error("--- ERROR during file upload process ---", err);
+      setUploadError(
+        err.message || "An unexpected error occurred during file upload."
+      );
+    } finally {
+      setIsUploading(false);
+      console.log("--- File upload process finished ---");
+    }
+  };
+
+  const handleViewDocuments = async () => {
+    if (!selectedPlot || !token) return;
+    setShowDocumentsModal(true);
+    setIsLoadingDocuments(true);
+    setDocumentsError(null);
+    try {
+      const response = (await getPlotDocumentsApi(
+        token,
+        selectedPlot.id
+      )) as ApiResponse<PlotDocument[]>;
+      setDocuments(response?.data || []);
+    } catch (err: any) {
+      setDocumentsError(err.message || "Could not fetch documents.");
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
   const handleMarkEmiAsPaid = async (emiId: string) => {
+    if (!selectedPlot) return;
     try {
       if (!token) throw new Error("No access token found");
-      if (!selectedPlot) throw new Error("No plot selected");
       await markEmiAsPaid(token, selectedPlot.id, emiId);
-
       // Refresh EMI details
-      if (selectedPlot) {
-        const response = await getPlotEmiDetails(token, selectedPlot.id);
-        setEmiDetails(response.data || []);
-      }
-
-      // Optionally show success message
-      setEmiError(null);
+      const response = (await getPlotEmiDetails(
+        token,
+        selectedPlot.id
+      )) as ApiResponse<any[]>;
+      setEmiDetails(response?.data || []);
     } catch (err: any) {
       setEmiError(err.message || "Failed to mark EMI as paid");
     }
   };
 
-  // pagination
-
   const handleNextPage = () => {
-    const nextPage = currentPage + 1;
-    const startIndex = nextPage * plotsPerPage;
-    const endIndex = startIndex + plotsPerPage;
-
-    if (startIndex < plots.length) {
-      setDisplayedPlots(plots.slice(startIndex, endIndex));
-      setCurrentPage(nextPage);
+    const totalPages = Math.ceil(plots.length / plotsPerPage);
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
     }
   };
 
   const handlePrevPage = () => {
-    const prevPage = currentPage - 1;
-    if (prevPage >= 0) {
-      const startIndex = prevPage * plotsPerPage;
-      const endIndex = startIndex + plotsPerPage;
-      setDisplayedPlots(plots.slice(startIndex, endIndex));
-      setCurrentPage(prevPage);
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
     }
   };
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div>Loading session...</div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout
@@ -532,169 +590,168 @@ export default function SalesPage() {
         { label: "Sales" },
       ]}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold">Plots</h2>
-        <button
-          onClick={() => setShowCreatePlotModal(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition cursor-pointer"
-        >
-          Create Plot
-        </button>
-      </div>
-
-      {/* Create Plot Modal */}
-      <CreatePlotModal
-        show={showCreatePlotModal}
-        onClose={() => setShowCreatePlotModal(false)}
-        formData={plotFormData}
-        error={createPlotError}
-        success={createPlotSuccess}
-        onChange={handlePlotFormChange}
-        onSubmit={handleCreatePlot}
-      />
-
-      {/* {loading ? (
-        <div>Loading plots...</div>
-      ) : error ? (
-        <div className="text-red-500">{error}</div>
-      ) : plots.length === 0 ? (
-        <div>No plots found.</div>
-      ) : (
-        <div className="flex flex-wrap gap-4 mb-8">
-          {plots.map((plot) => (
-            <div
-              key={plot.id}
-              className={`p-4 rounded-lg shadow-sm border-2 cursor-pointer min-w-[100px] text-center text-lg font-bold ${getStatusColor(
-                plot.plot_status
-              )} ${
-                selectedPlot?.id === plot.id ? "ring-2 ring-indigo-500" : ""
-              }`}
-              onClick={() => handlePlotClick(plot)}
-            >
-              Plot #{plot.number}
-            </div>
-          ))}
+      <div className="container mx-auto p-4">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold">Sales for {projectName}</h2>
+          <button
+            onClick={() => setShowCreatePlotModal(true)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-semibold"
+          >
+            + Add Plot
+          </button>
         </div>
-      )} */}
 
-      {loading ? (
-        <div>Loading plots...</div>
-      ) : error ? (
-        <div className="text-red-500">{error}</div>
-      ) : displayedPlots.length === 0 ? (
-        <div>No plots found.</div>
-      ) : (
-        <div className="relative pb-10">
-          <div className="flex flex-wrap gap-4 mb-4">
-            {displayedPlots.map((plot) => (
+        {error && <p className="text-red-500 mb-4">Error: {error}</p>}
+
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6 gap-4">
+            {Array.from({ length: plotsPerPage }).map((_, index) => (
               <div
-                key={plot.id}
-                className={`p-4 rounded-lg shadow-sm border-2 cursor-pointer min-w-[100px] text-center text-lg font-bold ${getStatusColor(
-                  plot.plot_status
-                )} ${
-                  selectedPlot?.id === plot.id ? "ring-2 ring-indigo-500" : ""
-                }`}
-                onClick={() => handlePlotClick(plot)}
+                key={index}
+                className="bg-white p-4 rounded-lg shadow-md animate-pulse"
               >
-                Plot #{plot.number}
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="h-8 bg-gray-300 rounded w-full"></div>
               </div>
             ))}
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6 gap-4">
+              {displayedPlots.map((plot) => (
+                <div
+                  key={plot.id}
+                  className={`p-4 rounded-lg shadow-md cursor-pointer transition-transform transform hover:scale-105 border-2 ${getStatusColor(
+                    plot.plot_status
+                  )}`}
+                  onClick={() => handlePlotClick(plot)}
+                >
+                  <p className="font-semibold">Plot #{plot.number}</p>
 
-          {/* Pagination Controls */}
-          <div className="flex justify-between w-full items-center mt-4 absolute bottom-2">
-            <button
-              onClick={handlePrevPage}
-              disabled={currentPage === 0}
-              className={`px-4 py-2 rounded-md ${
-                currentPage === 0
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
-            >
-              Previous
-            </button>
+                  <span
+                    className={`text-xs font-bold py-1 px-2 rounded-full mt-2 inline-block`}
+                  >
+                    {plot.plot_status.replace(/_/g, " ").toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {plots.length > plotsPerPage && (
+              <div className="flex justify-center items-center mt-6">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 0}
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="mx-4">
+                  Page {currentPage + 1} of{" "}
+                  {Math.ceil(plots.length / plotsPerPage)}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={
+                    currentPage >= Math.ceil(plots.length / plotsPerPage) - 1
+                  }
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
-            <span className="text-sm text-gray-600">
-              Page {currentPage + 1} of {Math.ceil(plots.length / plotsPerPage)}
-            </span>
-
-            <button
-              onClick={handleNextPage}
-              disabled={(currentPage + 1) * plotsPerPage >= plots.length}
-              className={`px-4 py-2 rounded-md ${
-                (currentPage + 1) * plotsPerPage >= plots.length
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-
-      {selectedPlot && (
-        <PlotDetailsModal
-          show={!!selectedPlot}
-          plot={selectedPlot}
-          onClose={handleCloseDetails}
-          onEditClick={() => handleEditPlotClick(selectedPlot)}
-          onSellClick={handleSellPlotClick}
-          onViewHistory={handleViewTransactionHistory}
-          loadingHistory={transactionHistoryLoading}
-          emiDetails={emiDetails}
-          loadingEmi={loadingEmiDetails}
-          emiError={emiError}
-          onMarkEmiAsPaid={handleMarkEmiAsPaid}
+        <CreatePlotModal
+          show={showCreatePlotModal}
+          onClose={() => setShowCreatePlotModal(false)}
+          onSubmit={handleCreatePlot}
+          formData={plotFormData}
+          onChange={handlePlotFormChange}
+          error={createPlotError}
+          success={createPlotSuccess}
         />
-      )}
 
-      {/* Edit Plot Modal */}
-      {selectedPlot && (
-        <EditPlotModal
-          show={showEditPlotModal}
-          onClose={() => setShowEditPlotModal(false)}
-          formData={editPlotFormData}
-          error={editPlotError}
-          success={editPlotSuccess}
-          onChange={handleEditPlotFormChange}
-          onSubmit={handleEditPlotSubmit}
-          plotNumber={selectedPlot.number}
-        />
-      )}
+        {selectedPlot && (
+          <>
+            <EditPlotModal
+              show={showEditPlotModal}
+              onClose={handleCloseDetails}
+              onSubmit={handleEditPlotSubmit}
+              formData={editPlotFormData}
+              onChange={handleEditPlotFormChange}
+              error={editPlotError}
+              success={editPlotSuccess}
+              plotNumber={selectedPlot.number}
+            />
 
-      {/* Sell Plot Modal */}
-      {selectedPlot && (
-        <SellPlotModal
-          show={showSellPlotForm}
-          onClose={() => setShowSellPlotForm(false)}
-          formData={sellFormData}
-          error={sellPlotError}
-          success={sellPlotSuccess}
-          onChange={handleSellFormChange}
-          onCheckboxChange={(e) => {
-            setSellFormData((prev) => ({
-              ...prev,
-              is_emi: e.target.checked,
-            }));
-          }}
-          onSubmit={handleSellPlotSubmit}
-          plotNumber={selectedPlot.number}
-        />
-      )}
+            <SellPlotModal
+              show={showSellPlotForm}
+              onClose={handleCloseDetails}
+              onSubmit={handleSellPlotSubmit}
+              formData={sellFormData}
+              onChange={handleSellFormChange}
+              onCheckboxChange={handleSellFormChange}
+              error={sellPlotError}
+              success={sellPlotSuccess}
+              plotNumber={selectedPlot.number}
+            />
 
-      {/* Transaction History Modal */}
-      {selectedPlot && (
-        <TransactionHistoryModal
-          show={showTransactionHistory}
-          onClose={() => setShowTransactionHistory(false)}
-          transactions={transactionHistory}
-          loading={transactionHistoryLoading}
-          error={transactionHistoryError}
-          plotNumber={selectedPlot.number}
-        />
-      )}
+            <TransactionHistoryModal
+              show={showTransactionHistory}
+              onClose={handleCloseDetails}
+              transactions={transactionHistory}
+              loading={transactionHistoryLoading}
+              error={transactionHistoryError}
+              plotNumber={selectedPlot.number}
+            />
+
+            <PlotDetailsModal
+              show={!!selectedPlot}
+              plot={selectedPlot}
+              onClose={handleCloseDetails}
+              onEditClick={() => handleEditPlotClick(selectedPlot)}
+              onSellClick={handleSellPlotClick}
+              onViewHistory={handleViewTransactionHistory}
+              onAddAmountClick={() => setShowAddAmountModal(true)}
+              onUploadDocumentClick={() => setShowUploadModal(true)}
+              onViewDocumentsClick={handleViewDocuments}
+              loadingHistory={transactionHistoryLoading}
+              emiDetails={emiDetails}
+              loadingEmi={loadingEmiDetails}
+              emiError={emiError}
+              onMarkEmiAsPaid={handleMarkEmiAsPaid}
+            />
+            <AddAmountModal
+              show={showAddAmountModal}
+              onClose={() => setShowAddAmountModal(false)}
+              onSubmit={handleAddAmount}
+              plotNumber={selectedPlot.number}
+              isSubmitting={isSubmittingAmount}
+              error={addAmountError}
+            />
+            <UploadDocumentModal
+              show={showUploadModal}
+              onClose={() => setShowUploadModal(false)}
+              onUpload={handleUploadDocument}
+              plotNumber={selectedPlot.number}
+              isUploading={isUploading}
+              error={uploadError}
+              success={uploadSuccess}
+            />
+            <ViewDocumentsModal
+              show={showDocumentsModal}
+              onClose={() => setShowDocumentsModal(false)}
+              documents={documents}
+              plotNumber={selectedPlot.number}
+              isLoading={isLoadingDocuments}
+              error={documentsError}
+            />
+          </>
+        )}
+      </div>
     </MainLayout>
   );
 }

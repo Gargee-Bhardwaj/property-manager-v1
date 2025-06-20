@@ -1,4 +1,4 @@
-const BASE_URL = "https://hustle-jldf.onrender.com/api/v1";
+import { apiClient } from "../apiClient";
 
 export interface Expense {
   id: string;
@@ -25,26 +25,15 @@ export interface Expense {
   transaction_approved_at?: string;
 }
 
-export async function getExpensesApi(
+export function getExpensesApi(
   token: string,
   projectId: string
 ): Promise<{ data: Expense[] }> {
-  const response = await fetch(`${BASE_URL}/projects/${projectId}/expenses`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || "Failed to fetch expenses");
-  }
-
-  return response.json();
+  return apiClient(`/projects/${projectId}/expenses`, { token });
 }
 
 // Add expense
-export async function createExpenseApi(
+export function createExpenseApi(
   token: string,
   projectId: string,
   expenseData: {
@@ -54,19 +43,9 @@ export async function createExpenseApi(
     type: string;
   }
 ): Promise<Expense> {
-  const response = await fetch(`${BASE_URL}/projects/${projectId}/expenses`, {
+  return apiClient(`/projects/${projectId}/expenses`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(expenseData),
+    token,
+    body: expenseData,
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || "Failed to create expense");
-  }
-
-  return response.json();
 }

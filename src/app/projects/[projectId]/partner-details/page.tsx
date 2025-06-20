@@ -22,14 +22,28 @@ import {
   getAmountCollectedByPartner,
   getAmountSpentByPartner,
   getTransactionApprovals,
-  voteOnTransactionApprovalApi,
 } from "../../../../lib/apis/auth";
+import { voteOnTransactionApprovalApi } from "../../../../lib/apis/transactions";
 
 interface Partner {
   id: string;
   email: string;
   full_name: string;
   phone: string;
+}
+
+interface PartnerResponse {
+  data: Partner[];
+}
+
+interface AmountResponse {
+  data: { id: string; amount_collected?: number; amount_spent?: number }[];
+  total_amount_collected?: number;
+  total_amount_spent?: number;
+}
+
+interface ProjectDetails {
+  name: string;
 }
 
 interface Vote {
@@ -93,10 +107,16 @@ export default function PartnerDetailsPage() {
       try {
         const [projectDetails, partnersRes, collectedRes, spentRes] =
           await Promise.all([
-            getProjectDetails(token, projectId),
-            getProjectPartners(token, projectId),
-            getAmountCollectedByPartner(token, projectId),
-            getAmountSpentByPartner(token, projectId),
+            getProjectDetails(token, projectId) as Promise<ProjectDetails>,
+            getProjectPartners(token, projectId) as Promise<PartnerResponse>,
+            getAmountCollectedByPartner(
+              token,
+              projectId
+            ) as Promise<AmountResponse>,
+            getAmountSpentByPartner(
+              token,
+              projectId
+            ) as Promise<AmountResponse>,
           ]);
 
         console.log("Project Details:", projectDetails);
@@ -104,7 +124,7 @@ export default function PartnerDetailsPage() {
         console.log("Amount Collected Response:", collectedRes);
         console.log("Amount Spent Response:", spentRes);
 
-        const collectedData = (collectedRes.data || []).reduce(
+        const collectedData = (collectedRes?.data || []).reduce(
           (
             acc: { [key: string]: number },
             curr: { id: string; amount_collected: number }
@@ -115,7 +135,7 @@ export default function PartnerDetailsPage() {
           {}
         );
 
-        const spentData = (spentRes.data || []).reduce(
+        const spentData = (spentRes?.data || []).reduce(
           (
             acc: { [key: string]: number },
             curr: { id: string; amount_spent: number }
@@ -126,15 +146,15 @@ export default function PartnerDetailsPage() {
           {}
         );
 
-        setProjectName(projectDetails.name || projectId);
-        setPartners(partnersRes.data || []);
+        setProjectName(projectDetails?.name || projectId);
+        setPartners(partnersRes?.data || []);
         setAmountCollected(collectedData);
         setAmountSpent(spentData);
-        setTotalSpent(spentRes.total_amount_spent || 0);
-        setTotalCollected(collectedRes.total_amount_collected || 0);
+        setTotalSpent(spentRes?.total_amount_spent || 0);
+        setTotalCollected(collectedRes?.total_amount_collected || 0);
 
         // Set current user as default selected partner
-        const currentUserAsPartner = (partnersRes.data || []).find(
+        const currentUserAsPartner = (partnersRes?.data || []).find(
           (p: Partner) => p.id === user?.id
         );
         setSelectedPartner(currentUserAsPartner || null);
@@ -159,20 +179,20 @@ export default function PartnerDetailsPage() {
       }
       setTransactionsLoading(true);
       try {
-        const res = await getTransactionApprovals(
-          token,
-          projectId,
-          selectedPartner?.id
+        const res: any = await getTransactionApprovals(token, projectId);
+        const transactionsData = res?.data || res || [];
+        setTransactions(
+          Array.isArray(transactionsData) ? transactionsData : []
         );
-        setTransactions(res.data || []);
       } catch (err: any) {
         console.error("Failed to fetch transactions:", err);
+        setTransactions([]);
       } finally {
         setTransactionsLoading(false);
       }
     };
     fetchTransactions();
-  }, [token, projectId, selectedPartner, voteSuccessTrigger]);
+  }, [token, projectId, voteSuccessTrigger]);
 
   const pieChartData = useMemo(() => {
     if (!selectedPartner) {
@@ -236,15 +256,15 @@ export default function PartnerDetailsPage() {
 
   const handleVote = async (
     approvalId: string,
-    status: "approved" | "rejected"
+    approvalStatus: "approved" | "rejected"
   ) => {
     setIsVoting(approvalId);
     try {
       if (!token) throw new Error("No access token found");
-      await voteOnTransactionApprovalApi(token, approvalId, status);
+      await voteOnTransactionApprovalApi(token, approvalId, approvalStatus);
       setVoteSuccessTrigger((prev) => !prev); // Trigger re-fetch
     } catch (err: any) {
-      console.error(`Failed to ${status} transaction`, err);
+      console.error(`Failed to ${approvalStatus} transaction`, err);
       setError(err.message || "Failed to submit vote");
     } finally {
       setIsVoting(null);
@@ -453,11 +473,7 @@ export default function PartnerDetailsPage() {
             <p className="text-center text-gray-500">Loading transactions...</p>
           ) : transactions.length === 0 ? (
             <p className="text-center text-gray-500">
-              No pending transactions
-              {selectedPartner
-                ? ` for ${selectedPartner.full_name || selectedPartner.email}`
-                : " for the project"}
-              .
+              No pending transactions for the project.
             </p>
           ) : (
             <div className="overflow-x-auto">

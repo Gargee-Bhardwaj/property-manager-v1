@@ -35,7 +35,7 @@ export default function DashboardPage() {
       setError(null);
       try {
         if (!token) throw new Error("No access token found");
-        const response = await getMyProjectsApi(token);
+        const response = (await getMyProjectsApi(token)) as { data: any[] };
         setProjects(response.data);
       } catch (err: any) {
         setError(err.message || "Failed to fetch projects");

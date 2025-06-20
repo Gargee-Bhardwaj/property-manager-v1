@@ -28,6 +28,9 @@ interface PlotDetailsModalProps {
   onEditClick: () => void;
   onSellClick: () => void;
   onViewHistory: () => void;
+  onAddAmountClick: () => void;
+  onUploadDocumentClick: () => void;
+  onViewDocumentsClick: () => void;
   loadingHistory: boolean;
   emiDetails?: Array<{
     id: string;
@@ -49,6 +52,9 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
   onEditClick,
   onSellClick,
   onViewHistory,
+  onAddAmountClick,
+  onUploadDocumentClick,
+  onViewDocumentsClick,
   loadingHistory,
   emiDetails = [],
   loadingEmi = false,
@@ -71,7 +77,7 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 relative">
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 relative my-4">
       <div className="flex justify-between items-start mb-4">
         <h2 className="text-xl font-bold">Plot #{plot.number} Details</h2>
         <div className="flex gap-4 items-center">
@@ -310,9 +316,24 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-6 flex gap-4">
-        <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition">
+      <div className="mt-6 flex gap-4 flex-wrap">
+        <button
+          onClick={onViewDocumentsClick}
+          className="px-4 py-2 bg-amber-300 rounded hover:bg-amber-400 transition"
+        >
           View Documents
+        </button>
+        <button
+          onClick={onUploadDocumentClick}
+          className="px-4 py-2 bg-blue-300 rounded hover:bg-blue-400 transition"
+        >
+          Upload Document
+        </button>
+        <button
+          onClick={onAddAmountClick}
+          className="px-4 py-2 bg-green-300 rounded hover:bg-green-400 transition"
+        >
+          Add Amount
         </button>
         <button
           onClick={onViewHistory}
