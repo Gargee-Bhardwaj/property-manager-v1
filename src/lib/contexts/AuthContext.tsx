@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (token) {
       getUserProfileApi(token)
-        .then((profile) => setUser(profile))
+        .then((profile) => setUser(profile as User))
         .catch(() => {
           setUser(null);
           if (typeof window !== "undefined") {
@@ -52,13 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const { access_token } = await loginApi(email, password);
+      const { access_token } = (await loginApi(email, password)) as {
+        access_token: string;
+      };
       if (typeof window !== "undefined") {
         localStorage.setItem("access_token", access_token);
       }
       setToken(access_token);
       const profile = await getUserProfileApi(access_token);
-      setUser(profile);
+      setUser(profile as User);
       return true;
     } catch (error) {
       setUser(null);

@@ -17,9 +17,9 @@ export const AddAmountModal: React.FC<AddAmountModalProps> = ({
   isSubmitting,
   error,
 }) => {
-  if (!show) return null;
-
   const [amount, setAmount] = useState("");
+
+  if (!show) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -19,9 +19,9 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
   error,
   success,
 }) => {
-  if (!show) return null;
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  if (!show) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

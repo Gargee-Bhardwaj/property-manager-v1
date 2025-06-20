@@ -17,7 +17,9 @@ export default function ProjectDetailPage() {
       setProjectLoading(true);
       try {
         if (!token) throw new Error("No access token found");
-        const project = await getProjectDetails(token, projectId);
+        const project = (await getProjectDetails(token, projectId)) as {
+          name: string;
+        };
         setProjectName(project.name || projectId);
       } catch {
         setProjectName(projectId);
