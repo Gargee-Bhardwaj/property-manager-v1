@@ -157,7 +157,7 @@ export default function ProjectDocumentsPage() {
         </form>
       </div>
 
-      <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+      <div className="mt-8 bg-white p-6 rounded-lg shadow-md overflow-y-auto max-h-[50vh]">
         <h3 className="text-lg font-semibold mb-4">Uploaded Documents</h3>
         {loadingDocuments ? (
           <p>Loading documents...</p>
@@ -178,13 +178,13 @@ export default function ProjectDocumentsPage() {
                 >
                   {formatFilename(doc.file_name)}
                 </a>
-                <span className="text-sm text-gray-500">
+                {/* <span className="text-sm text-gray-500">
                   {new Date(doc.created_at).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
                   })}
-                </span>
+                </span> */}
               </li>
             ))}
           </ul>
