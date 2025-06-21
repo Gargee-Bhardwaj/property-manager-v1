@@ -571,6 +571,40 @@ export default function SalesPage() {
     }
   };
 
+  const handleCreatePlotModalClose = () => {
+    setShowCreatePlotModal(false);
+    setCreatePlotError(null);
+    setCreatePlotSuccess(null);
+  };
+
+  const handleEditPlotModalClose = () => {
+    setShowEditPlotModal(false);
+    setEditPlotError(null);
+    setEditPlotSuccess(null);
+  };
+
+  const handleSellPlotModalClose = () => {
+    setShowSellPlotForm(false);
+    setSellPlotError(null);
+    setSellPlotSuccess(null);
+  };
+
+  const handleAddAmountModalClose = () => {
+    setShowAddAmountModal(false);
+    setAddAmountError(null);
+  };
+
+  const handleUploadModalClose = () => {
+    setShowUploadModal(false);
+    setUploadError(null);
+    setUploadSuccess(null);
+  };
+
+  const handleViewDocumentsModalClose = () => {
+    setShowDocumentsModal(false);
+    setDocumentsError(null);
+  };
+
   if (authLoading) {
     return (
       <MainLayout>
@@ -666,7 +700,7 @@ export default function SalesPage() {
 
         <CreatePlotModal
           show={showCreatePlotModal}
-          onClose={() => setShowCreatePlotModal(false)}
+          onClose={handleCreatePlotModalClose}
           onSubmit={handleCreatePlot}
           formData={plotFormData}
           onChange={handlePlotFormChange}
@@ -678,7 +712,7 @@ export default function SalesPage() {
           <>
             <EditPlotModal
               show={showEditPlotModal}
-              onClose={handleCloseDetails}
+              onClose={handleEditPlotModalClose}
               onSubmit={handleEditPlotSubmit}
               formData={editPlotFormData}
               onChange={handleEditPlotFormChange}
@@ -689,7 +723,7 @@ export default function SalesPage() {
 
             <SellPlotModal
               show={showSellPlotForm}
-              onClose={handleCloseDetails}
+              onClose={handleSellPlotModalClose}
               onSubmit={handleSellPlotSubmit}
               formData={sellFormData}
               onChange={handleSellFormChange}
@@ -701,7 +735,7 @@ export default function SalesPage() {
 
             <TransactionHistoryModal
               show={showTransactionHistory}
-              onClose={handleCloseDetails}
+              onClose={() => setShowTransactionHistory(false)}
               transactions={transactionHistory}
               loading={transactionHistoryLoading}
               error={transactionHistoryError}
@@ -726,7 +760,7 @@ export default function SalesPage() {
             />
             <AddAmountModal
               show={showAddAmountModal}
-              onClose={() => setShowAddAmountModal(false)}
+              onClose={handleAddAmountModalClose}
               onSubmit={handleAddAmount}
               plotNumber={selectedPlot.number}
               isSubmitting={isSubmittingAmount}
@@ -734,7 +768,7 @@ export default function SalesPage() {
             />
             <UploadDocumentModal
               show={showUploadModal}
-              onClose={() => setShowUploadModal(false)}
+              onClose={handleUploadModalClose}
               onUpload={handleUploadDocument}
               plotNumber={selectedPlot.number}
               isUploading={isUploading}
@@ -743,7 +777,7 @@ export default function SalesPage() {
             />
             <ViewDocumentsModal
               show={showDocumentsModal}
-              onClose={() => setShowDocumentsModal(false)}
+              onClose={handleViewDocumentsModalClose}
               documents={documents}
               plotNumber={selectedPlot.number}
               isLoading={isLoadingDocuments}

@@ -95,6 +95,20 @@ export default function ProjectDetailPage() {
           </div>
           <p className="text-sm">Track and manage partner details</p>
         </div>
+
+        {/* Project Documents Card */}
+        <div
+          onClick={() =>
+            router.push(`/projects/${projectId}/project-documents`)
+          }
+          className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Project Documents</h3>
+            <span className="text-indigo-600">→</span>
+          </div>
+          <p className="text-sm">Track and manage project documents</p>
+        </div>
       </div>
     </MainLayout>
   );

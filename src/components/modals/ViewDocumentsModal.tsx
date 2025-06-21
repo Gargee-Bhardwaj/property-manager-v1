@@ -15,6 +15,15 @@ interface ViewDocumentsModalProps {
   error: string | null;
 }
 
+// Helper to format the filename
+const formatFilename = (filename: string) => {
+  const parts = filename.split("_");
+  if (parts.length > 1) {
+    return parts.slice(1).join("_");
+  }
+  return filename;
+};
+
 export const ViewDocumentsModal: React.FC<ViewDocumentsModalProps> = ({
   show,
   onClose,
@@ -54,7 +63,7 @@ export const ViewDocumentsModal: React.FC<ViewDocumentsModalProps> = ({
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline"
                 >
-                  {doc.file_name}
+                  {formatFilename(doc.file_name)}
                 </a>
               </li>
             ))}
