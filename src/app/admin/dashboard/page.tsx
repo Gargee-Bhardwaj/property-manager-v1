@@ -1,7 +1,7 @@
 "use client";
 import { useAuth } from "../../../lib/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../../../components/MainLayout";
 import {
   createProjectApi,
@@ -99,84 +99,93 @@ export default function AdminDashboardPage() {
     fetchProjects();
   }, [token, success, partnerSuccess]);
 
-  const handleProjectInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setProjectData({
-      ...projectData,
-      [name]: value,
-    });
-  };
+  const handleProjectInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setProjectData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    },
+    []
+  );
 
-  const handleProjectBudgetChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setProjectData({
-      ...projectData,
-      [name]: value,
-    });
-  };
+  const handleProjectBudgetChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const { name, value } = e.target;
+      setProjectData((prev) => ({
+        ...prev,
+        [name]: parseFloat(value) || 0,
+      }));
+    },
+    []
+  );
 
-  const handleUserInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setUserManagement({
-      ...userManagement,
-      [name]: type === "checkbox" ? checked : value,
-    });
-  };
+  const handleUserInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value, type, checked } = e.target;
+      setUserManagement((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    },
+    []
+  );
 
-  const handlePartnerCreateUserChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, value, type, checked } = e.target;
-    setPartnerCreateFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+  const handlePartnerCreateUserChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value, type, checked } = e.target;
+      setPartnerCreateFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    },
+    []
+  );
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setIsCreatingUser(true);
+  const handleCreateUser = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+      setSuccess("");
+      setIsCreatingUser(true);
 
-    try {
-      if (!token) throw new Error("Not authenticated");
+      try {
+        if (!token) throw new Error("Not authenticated");
 
-      const newUser = (await createUserApi(token, {
-        email: userManagement.email,
-        password: userManagement.password,
-        full_name: userManagement.full_name,
-        phone: userManagement.phone,
-        is_active: userManagement.is_active,
-        is_superuser: userManagement.is_superuser,
-      })) as { id: string };
+        const newUser = (await createUserApi(token, {
+          email: userManagement.email,
+          password: userManagement.password,
+          full_name: userManagement.full_name,
+          phone: userManagement.phone,
+          is_active: userManagement.is_active,
+          is_superuser: userManagement.is_superuser,
+        })) as { id: string };
 
-      setSuccess("User created successfully!");
-      setProjectData({
-        ...projectData,
-        owner_id: newUser.id,
-      });
-      setSelectedOwner(newUser);
-      setUserManagement({
-        ...userManagement,
-        mode: "none",
-        email: "",
-        password: "",
-        full_name: "",
-        phone: "",
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user");
-    } finally {
-      setIsCreatingUser(false);
-    }
-  };
+        setSuccess("User created successfully!");
+        setProjectData((prev) => ({
+          ...prev,
+          owner_id: newUser.id,
+        }));
+        setSelectedOwner(newUser);
+        setUserManagement((prev) => ({
+          ...prev,
+          mode: "none",
+          email: "",
+          password: "",
+          full_name: "",
+          phone: "",
+        }));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create user");
+      } finally {
+        setIsCreatingUser(false);
+      }
+    },
+    [token, userManagement]
+  );
 
-  const handleFindUser = async () => {
+  const handleFindUser = useCallback(async () => {
     setError("");
     setSuccess("");
     setIsFindingUser(true);
@@ -187,143 +196,176 @@ export default function AdminDashboardPage() {
         throw new Error("Phone number is required");
 
       const user = await getUserByPhoneApi(token, userManagement.searchPhone);
-      setUserManagement({
-        ...userManagement,
+      setUserManagement((prev) => ({
+        ...prev,
         foundUsers: [user],
-      });
+      }));
       setSuccess("User found successfully!");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to find user");
     } finally {
       setIsFindingUser(false);
     }
-  };
+  }, [token, userManagement.searchPhone]);
 
-  const handleAddUser = (user: any) => {
-    setProjectData({
-      ...projectData,
+  const handleAddUser = useCallback((user: any) => {
+    setProjectData((prev) => ({
+      ...prev,
       owner_id: user.id,
-    });
+    }));
     setSelectedOwner(user);
-    setUserManagement({
-      ...userManagement,
+    setUserManagement((prev) => ({
+      ...prev,
       mode: "none",
       foundUsers: [],
       searchPhone: "",
-    });
+    }));
     setSuccess("User added as project owner!");
-  };
+  }, []);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setIsCreatingProject(true);
+  const handleCreateProject = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+      setSuccess("");
+      setIsCreatingProject(true);
 
-    try {
-      if (!token) throw new Error("Not authenticated");
-      if (!projectData.owner_id) throw new Error("Please select an owner");
+      try {
+        if (!token) throw new Error("Not authenticated");
+        if (!projectData.owner_id) throw new Error("Please select an owner");
 
-      await createProjectApi(token, projectData);
-      setSuccess("Project created successfully!");
-      setProjectData({
-        name: "",
-        owner_id: "",
-        budget: 0,
-      });
-      setSelectedOwner(null);
-      setUserManagement({
-        mode: "none",
-        email: "",
-        password: "",
-        full_name: "",
-        phone: "",
-        is_active: true,
-        is_superuser: false,
-        searchPhone: "",
-        foundUsers: [],
-      });
-      setTimeout(() => {
-        setShowCreateProject(false);
-        setSuccess(""); // Clear success message after modal closes
-      }, 1000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create project");
-    } finally {
-      setIsCreatingProject(false);
-    }
-  };
+        await createProjectApi(token, projectData);
+        setSuccess("Project created successfully!");
+        setProjectData({
+          name: "",
+          owner_id: "",
+          budget: 0,
+        });
+        setSelectedOwner(null);
+        setUserManagement({
+          mode: "none",
+          email: "",
+          password: "",
+          full_name: "",
+          phone: "",
+          is_active: true,
+          is_superuser: false,
+          searchPhone: "",
+          foundUsers: [],
+        });
+        setTimeout(() => {
+          setShowCreateProject(false);
+          setSuccess(""); // Clear success message after modal closes
+        }, 1000);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to create project"
+        );
+      } finally {
+        setIsCreatingProject(false);
+      }
+    },
+    [token, projectData]
+  );
 
-  // Add Partner API
-  const handleAddPartner = async () => {
-    setPartnerSuccess("");
+  const handleAddPartner = useCallback(async () => {
     setPartnerError("");
+    setPartnerSuccess("");
+
+    if (!editingProjectForPartner || !partnerUser) {
+      setPartnerError("Please select a project and a partner.");
+      return;
+    }
+
     setIsAddingPartner(true);
     try {
       if (!token) throw new Error("Not authenticated");
-      if (!editingProjectForPartner) throw new Error("No project selected");
-      if (!partnerUser) throw new Error("Select a user");
+
       await addPartnerToProjectApi(token, editingProjectForPartner.id, {
         user_id: partnerUser.id,
         role: partnerRole,
       });
 
       setPartnerSuccess("Partner added successfully!");
+      setEditingProjectForPartner(null);
       setPartnerUser(null);
-      setPartnerRole("member");
-      setPartnerSearchPhone("");
-      setPartnerFoundUsers([]);
       setPartnerMode("none");
-      setTimeout(() => setPartnerSuccess(""), 2000); // Clear success after 2 seconds
-    } catch (err: any) {
-      setPartnerError(err.message || "Failed to add partner");
+      setPartnerFoundUsers([]);
+      setPartnerSearchPhone("");
+    } catch (err) {
+      setPartnerError(
+        err instanceof Error ? err.message : "Failed to add partner"
+      );
     } finally {
       setIsAddingPartner(false);
     }
-  };
+  }, [token, editingProjectForPartner, partnerUser, partnerRole]);
 
-  const handlePartnerFindUser = async () => {
+  const handlePartnerFindUser = useCallback(async () => {
     setPartnerError("");
     setPartnerSuccess("");
-    setIsFindingUser(true);
+    if (!partnerSearchPhone.trim()) {
+      setPartnerError("Phone number is required");
+      return;
+    }
+
     try {
       if (!token) throw new Error("Not authenticated");
-      if (!partnerSearchPhone.trim())
-        throw new Error("Phone number is required");
       const user = await getUserByPhoneApi(token, partnerSearchPhone);
       setPartnerFoundUsers([user]);
-    } catch (err: any) {
-      setPartnerError(err.message || "Failed to find user");
-    } finally {
-      setIsFindingUser(false);
+      setPartnerSuccess("User found!");
+    } catch (err) {
+      setPartnerError(
+        err instanceof Error ? err.message : "Failed to find partner"
+      );
     }
-  };
+  }, [token, partnerSearchPhone]);
 
-  const handlePartnerCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePartnerCreateUser = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setPartnerError("");
+      setPartnerSuccess("");
+      setIsCreatingPartnerUser(true);
+
+      try {
+        if (!token) throw new Error("Not authenticated");
+        const newUser = (await createUserApi(token, partnerCreateFormData)) as {
+          id: string;
+        };
+
+        setPartnerUser(newUser);
+        setPartnerSuccess("Partner user created and selected!");
+        setPartnerMode("none"); // Switch back to selection
+      } catch (err) {
+        setPartnerError(
+          err instanceof Error ? err.message : "Failed to create partner user"
+        );
+      } finally {
+        setIsCreatingPartnerUser(false);
+      }
+    },
+    [token, partnerCreateFormData]
+  );
+
+  // Close partner modal and reset states
+  const closePartnerModal = useCallback(() => {
+    setEditingProjectForPartner(null);
+    setPartnerMode("none");
+    setPartnerUser(null);
+    setPartnerSearchPhone("");
+    setPartnerFoundUsers([]);
+    setPartnerCreateFormData({
+      email: "",
+      password: "",
+      full_name: "",
+      phone: "",
+      is_active: true,
+      is_superuser: false,
+    });
     setPartnerError("");
     setPartnerSuccess("");
-    setIsCreatingPartnerUser(true);
-    try {
-      if (!token) throw new Error("Not authenticated");
-      const newUser = await createUserApi(token, partnerCreateFormData);
-      setPartnerUser(newUser);
-      setPartnerSuccess("New user created and selected!");
-      setPartnerCreateFormData({
-        email: "",
-        password: "",
-        full_name: "",
-        phone: "",
-        is_active: true,
-        is_superuser: false,
-      });
-      setPartnerMode("none");
-    } catch (err: any) {
-      setPartnerError(err.message || "Failed to create user");
-    } finally {
-      setIsCreatingPartnerUser(false);
-    }
-  };
+  }, []);
 
   return (
     <MainLayout>
@@ -687,23 +729,7 @@ export default function AdminDashboardPage() {
         <div className="bg-opacity-50 flex items-center justify-center my-4">
           <div className="bg-white rounded-lg p-6 w-full relative">
             <button
-              onClick={() => {
-                setEditingProjectForPartner(null);
-                setPartnerError("");
-                setPartnerSuccess("");
-                setPartnerUser(null);
-                setPartnerMode("none");
-                setPartnerSearchPhone("");
-                setPartnerFoundUsers([]);
-                setPartnerCreateFormData({
-                  email: "",
-                  password: "",
-                  full_name: "",
-                  phone: "",
-                  is_active: true,
-                  is_superuser: false,
-                });
-              }}
+              onClick={closePartnerModal}
               className="text-gray-500 hover:text-gray-700 absolute right-4 top-4"
             >
               &times;
@@ -947,23 +973,7 @@ export default function AdminDashboardPage() {
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
-                onClick={() => {
-                  setEditingProjectForPartner(null);
-                  setPartnerError("");
-                  setPartnerSuccess("");
-                  setPartnerUser(null);
-                  setPartnerMode("none");
-                  setPartnerSearchPhone("");
-                  setPartnerFoundUsers([]);
-                  setPartnerCreateFormData({
-                    email: "",
-                    password: "",
-                    full_name: "",
-                    phone: "",
-                    is_active: true,
-                    is_superuser: false,
-                  });
-                }}
+                onClick={closePartnerModal}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                 disabled={isAddingPartner}
               >

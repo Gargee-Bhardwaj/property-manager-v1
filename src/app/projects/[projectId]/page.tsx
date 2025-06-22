@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../../../components/MainLayout";
 import { getProjectDetails } from "../../../lib/apis/auth";
 import { useAuth } from "../../../lib/contexts/AuthContext";
@@ -30,6 +30,13 @@ export default function ProjectDetailPage() {
     fetchProject();
   }, [projectId, token]);
 
+  const handleNavigate = useCallback(
+    (path: string) => {
+      router.push(`/projects/${projectId}/${path}`);
+    },
+    [router, projectId]
+  );
+
   return (
     <MainLayout
       breadcrumbs={[
@@ -40,7 +47,7 @@ export default function ProjectDetailPage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Sales Card */}
         <div
-          onClick={() => router.push(`/projects/${projectId}/sales`)}
+          onClick={() => handleNavigate("sales")}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
@@ -51,7 +58,7 @@ export default function ProjectDetailPage() {
         </div>
         {/* Expenses Card */}
         <div
-          onClick={() => router.push(`/projects/${projectId}/expenses`)}
+          onClick={() => handleNavigate("expenses")}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
@@ -62,7 +69,7 @@ export default function ProjectDetailPage() {
         </div>
         {/* Summary Card */}
         <div
-          onClick={() => router.push(`/projects/${projectId}/summary`)}
+          onClick={() => handleNavigate("summary")}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
@@ -74,7 +81,7 @@ export default function ProjectDetailPage() {
 
         {/* transactions Card */}
         <div
-          onClick={() => router.push(`/projects/${projectId}/transactions`)}
+          onClick={() => handleNavigate("transactions")}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
@@ -86,7 +93,7 @@ export default function ProjectDetailPage() {
 
         {/* Partner Details Card */}
         <div
-          onClick={() => router.push(`/projects/${projectId}/partner-details`)}
+          onClick={() => handleNavigate("partner-details")}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">
@@ -98,9 +105,7 @@ export default function ProjectDetailPage() {
 
         {/* Project Documents Card */}
         <div
-          onClick={() =>
-            router.push(`/projects/${projectId}/project-documents`)
-          }
+          onClick={() => handleNavigate("project-documents")}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-center justify-between mb-4">

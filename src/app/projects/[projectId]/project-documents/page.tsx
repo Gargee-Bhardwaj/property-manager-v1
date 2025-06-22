@@ -1,6 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../../../../components/MainLayout";
 import { useAuth } from "../../../../lib/contexts/AuthContext";
 import {
@@ -43,7 +43,7 @@ export default function ProjectDocumentsPage() {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
 
-  const fetchProjectDocuments = async () => {
+  const fetchProjectDocuments = useCallback(async () => {
     if (!token) return;
     setLoadingDocuments(true);
     try {
@@ -56,7 +56,7 @@ export default function ProjectDocumentsPage() {
     } finally {
       setLoadingDocuments(false);
     }
-  };
+  }, [token, projectId]);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -76,44 +76,50 @@ export default function ProjectDocumentsPage() {
     };
     fetchProject();
     fetchProjectDocuments();
-  }, [projectId, token]);
+  }, [projectId, token, fetchProjectDocuments]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        setSelectedFile(e.target.files[0]);
+      }
+    },
+    []
+  );
 
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFile) return;
+  const handleUpload = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedFile) return;
 
-    setIsUploading(true);
-    setUploadError(null);
-    setUploadSuccess(null);
+      setIsUploading(true);
+      setUploadError(null);
+      setUploadSuccess(null);
 
-    try {
-      if (!token) throw new Error("Authentication token not found.");
+      try {
+        if (!token) throw new Error("Authentication token not found.");
 
-      const { upload_url, unique_key } = (await generateUploadUrlApi(
-        token,
-        selectedFile.name,
-        selectedFile.type
-      )) as { upload_url: string; unique_key: string };
+        const { upload_url, unique_key } = (await generateUploadUrlApi(
+          token,
+          selectedFile.name,
+          selectedFile.type
+        )) as { upload_url: string; unique_key: string };
 
-      await uploadFile(upload_url, selectedFile);
+        await uploadFile(upload_url, selectedFile);
 
-      await associateProjectDocumentApi(token, projectId, unique_key);
+        await associateProjectDocumentApi(token, projectId, unique_key);
 
-      setUploadSuccess("File uploaded successfully!");
-      setSelectedFile(null);
-    } catch (err: any) {
-      setUploadError(err.message || "Failed to upload file.");
-    } finally {
-      setIsUploading(false);
-      fetchProjectDocuments();
-    }
-  };
+        setUploadSuccess("File uploaded successfully!");
+        setSelectedFile(null);
+      } catch (err: any) {
+        setUploadError(err.message || "Failed to upload file.");
+      } finally {
+        setIsUploading(false);
+        fetchProjectDocuments();
+      }
+    },
+    [token, selectedFile, projectId, fetchProjectDocuments]
+  );
 
   return (
     <MainLayout

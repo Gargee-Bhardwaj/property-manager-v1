@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../../lib/contexts/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 // import { useAuth } from '@/lib/contexts/AuthContext'
 
 // 1. Define validation schema
@@ -30,28 +30,35 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
+  const toggleShowPassword = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
+
   // 2. Handle form submission
-  const onSubmit = async (data: LoginFormValues) => {
-    try {
-      const success = await login(data.email, data.password);
-      if (success) {
-        router.push("/");
-      } else {
+  const onSubmit = useCallback(
+    async (data: LoginFormValues) => {
+      try {
+        const success = await login(data.email, data.password);
+        if (success) {
+          router.push("/");
+        } else {
+          setError("root", {
+            type: "manual",
+            message: "Invalid email or password.",
+          });
+        }
+      } catch (error: any) {
         setError("root", {
           type: "manual",
-          message: "Invalid email or password.",
+          message:
+            error?.message === "Invalid credentials"
+              ? "Invalid email or password."
+              : "An unexpected error occurred. Please try again.",
         });
       }
-    } catch (error: any) {
-      setError("root", {
-        type: "manual",
-        message:
-          error?.message === "Invalid credentials"
-            ? "Invalid email or password."
-            : "An unexpected error occurred. Please try again.",
-      });
-    }
-  };
+    },
+    [login, router, setError]
+  );
 
   // 3. Render the form
   return (
@@ -99,7 +106,7 @@ export function LoginForm() {
             <button
               type="button"
               className="absolute inset-y-0 right-0 flex items-center pr-3"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={toggleShowPassword}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (

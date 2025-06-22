@@ -476,7 +476,7 @@ export default function PartnerDetailsPage() {
               No pending transactions for the project.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[50vh]">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import MainLayout from "../../../../components/MainLayout";
 import { useAuth } from "../../../../lib/contexts/AuthContext";
 import { useParams } from "next/navigation";
@@ -34,6 +34,27 @@ interface ProjectDetails {
   name: string;
 }
 
+interface Vote {
+  id: string;
+  user: {
+    full_name: string;
+  };
+  approval_status: string;
+  voted_at: string;
+}
+
+interface TransactionApproval {
+  id: string;
+  target_model: string;
+  created_at: string;
+  initiated_by: {
+    full_name?: string;
+    email?: string;
+  };
+  status: "pending" | "approved" | "rejected";
+  votes: Vote[];
+}
+
 export default function TransactionsPage() {
   const { token, isLoading: authLoading } = useAuth();
   const params = useParams();
@@ -41,16 +62,9 @@ export default function TransactionsPage() {
   const [projectLoading, setProjectLoading] = useState(true);
   const [projectName, setProjectName] = useState<string>("");
 
-  const [transactionsCreatedByMe, setTransactionsCreatedByMe] = useState<
-    Transaction[]
-  >([]);
-  const [transactionsToApprove, setTransactionsToApprove] = useState<
-    Transaction[]
-  >([]);
-
-  const [loading, setLoading] = useState(false);
-  const [isVoting, setIsVoting] = useState(false);
-
+  const [createdByMe, setCreatedByMe] = useState<TransactionApproval[]>([]);
+  const [toApprove, setToApprove] = useState<TransactionApproval[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -59,6 +73,28 @@ export default function TransactionsPage() {
   );
   const [showApprovalDetailsModal, setShowApprovalDetailsModal] =
     useState(false);
+
+  const fetchTransactions = useCallback(async () => {
+    if (!token) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const created = (await getTransactionsCreatedByMeApi(
+        token,
+        projectId
+      )) as { data: TransactionApproval[] };
+      const toApproveRes = (await getTransactionsToApproveApi(
+        token,
+        projectId
+      )) as { data: TransactionApproval[] };
+      setCreatedByMe(created.data);
+      setToApprove(toApproveRes.data);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch transactions");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, projectId]);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -83,73 +119,79 @@ export default function TransactionsPage() {
 
   // Fetch transactions based on selected project from URL
   useEffect(() => {
-    const fetchTransactions = async () => {
-      if (!projectId || !token) return;
-      setLoading(true);
+    if (!authLoading) {
+      fetchTransactions();
+    }
+  }, [projectId, token, success, authLoading, fetchTransactions]); // Re-fetch on project change (via URL) or successful vote
+
+  const handleViewApprovalDetails = useCallback(
+    async (approvalId: string) => {
+      setIsLoading(true);
       setError(null);
       try {
-        const [createdByMeRes, toApproveRes] = await Promise.all([
-          getTransactionsCreatedByMeApi(
-            token,
-            projectId
-          ) as Promise<TransactionApiResponse>,
-          getTransactionsToApproveApi(
-            token,
-            projectId
-          ) as Promise<TransactionApiResponse>,
-        ]);
-        setTransactionsCreatedByMe(createdByMeRes?.data || []);
-        setTransactionsToApprove(toApproveRes?.data || []);
+        if (!token) throw new Error("No access token found");
+        const details = (await getTransactionApprovalDetailsApi(
+          token,
+          approvalId
+        )) as Transaction;
+        setSelectedApproval(details);
+        setShowApprovalDetailsModal(true);
       } catch (err: any) {
-        setError(err.message || "Failed to fetch transactions");
+        setError(err.message || "Failed to fetch approval details");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    };
+    },
+    [token]
+  );
 
-    fetchTransactions();
-  }, [projectId, token, success]); // Re-fetch on project change (via URL) or successful vote
+  const handleVote = useCallback(
+    async (approvalStatus: "approved" | "rejected") => {
+      if (!selectedApproval) return;
+      setIsLoading(true);
+      setSuccess(null);
+      setError(null);
+      try {
+        if (!token) throw new Error("No access token found");
+        await voteOnTransactionApprovalApi(
+          token,
+          selectedApproval.id,
+          approvalStatus
+        );
+        setSuccess(`Transaction ${approvalStatus} successfully!`);
+        setShowApprovalDetailsModal(false);
+        setSelectedApproval(null);
+        setTimeout(() => setSuccess(null), 3000);
+      } catch (err: any) {
+        setError(err.message || `Failed to ${approvalStatus} transaction`);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [token, selectedApproval]
+  );
 
-  const handleViewApprovalDetails = async (approvalId: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      if (!token) throw new Error("No access token found");
-      const details = (await getTransactionApprovalDetailsApi(
-        token,
-        approvalId
-      )) as Transaction;
-      setSelectedApproval(details);
-      setShowApprovalDetailsModal(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch approval details");
-    } finally {
-      setLoading(false);
+  const getStatusComponent = useCallback((status: string) => {
+    let className = "px-2 py-1 text-xs rounded-full";
+    switch (status) {
+      case "approved":
+        className += " bg-green-100 text-green-800";
+        break;
+      case "pending":
+        className += " bg-yellow-100 text-yellow-800";
+        break;
+      case "rejected":
+        className += " bg-red-100 text-red-800";
+        break;
+      default:
+        className += " bg-gray-100 text-gray-800";
     }
-  };
+    return <span className={className}>{status.toUpperCase()}</span>;
+  }, []);
 
-  const handleVote = async (approvalStatus: "approved" | "rejected") => {
-    if (!selectedApproval) return;
-    setIsVoting(true);
-    setSuccess(null);
-    setError(null);
-    try {
-      if (!token) throw new Error("No access token found");
-      await voteOnTransactionApprovalApi(
-        token,
-        selectedApproval.id,
-        approvalStatus
-      );
-      setSuccess(`Transaction ${approvalStatus} successfully!`);
-      setShowApprovalDetailsModal(false);
-      setSelectedApproval(null);
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || `Failed to ${approvalStatus} transaction`);
-    } finally {
-      setIsVoting(false);
-    }
-  };
+  if (authLoading || isLoading) {
+    return <MainLayout>Loading transactions...</MainLayout>;
+  }
 
   return (
     <MainLayout
@@ -183,15 +225,15 @@ export default function TransactionsPage() {
           <h3 className="text-lg font-semibold mb-4">
             Transactions Created by Me
           </h3>
-          {loading ? (
+          {isLoading ? (
             <p className="text-gray-500">Loading transactions...</p>
-          ) : transactionsCreatedByMe.length === 0 ? (
+          ) : createdByMe.length === 0 ? (
             <p className="text-gray-500">
               No transactions created by you for this project.
             </p>
           ) : (
             <ul className="space-y-3">
-              {transactionsCreatedByMe.map((tx) => (
+              {createdByMe.map((tx) => (
                 <li
                   key={tx.id}
                   className="p-3 border border-gray-200 rounded-md bg-gray-50"
@@ -212,15 +254,15 @@ export default function TransactionsPage() {
           <h3 className="text-lg font-semibold mb-4">
             Transactions to Approve
           </h3>
-          {loading ? (
+          {isLoading ? (
             <p className="text-gray-500">Loading transactions...</p>
-          ) : transactionsToApprove.length === 0 ? (
+          ) : toApprove.length === 0 ? (
             <p className="text-gray-500">
               No transactions awaiting your approval for this project.
             </p>
           ) : (
             <ul className="space-y-3">
-              {transactionsToApprove.map((tx) => (
+              {toApprove.map((tx) => (
                 <li
                   key={tx.id}
                   className="p-3 border border-gray-200 rounded-md bg-yellow-50 cursor-pointer hover:bg-yellow-100 transition"
@@ -265,23 +307,13 @@ export default function TransactionsPage() {
               Transaction Approval Details
             </h3>
 
-            {loading ? (
+            {isLoading ? (
               <p className="text-gray-500">Loading details...</p>
             ) : (
               <div className="space-y-3">
                 <p>
                   <span className="font-medium">Status:</span>{" "}
-                  <span
-                    className={`font-semibold ${
-                      selectedApproval.status === "pending"
-                        ? "text-yellow-600"
-                        : selectedApproval.status === "approved"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {selectedApproval.status.toUpperCase()}
-                  </span>
+                  {getStatusComponent(selectedApproval.status)}
                 </p>
                 <p>
                   <span className="font-medium">Type:</span>{" "}
@@ -344,24 +376,22 @@ export default function TransactionsPage() {
                     </>
                   )}
 
-                {selectedApproval.status === "pending" && (
-                  <div className="mt-6 flex justify-end space-x-4">
-                    <button
-                      onClick={() => handleVote("approved")}
-                      disabled={isVoting}
-                      className="px-5 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 font-medium"
-                    >
-                      {isVoting ? "Approving..." : "Approve"}
-                    </button>
-                    <button
-                      onClick={() => handleVote("rejected")}
-                      disabled={isVoting}
-                      className="px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 font-medium"
-                    >
-                      {isVoting ? "Rejecting..." : "Reject"}
-                    </button>
-                  </div>
-                )}
+                <div className="mt-6 flex justify-end space-x-4">
+                  <button
+                    onClick={() => handleVote("approved")}
+                    disabled={isLoading}
+                    className="px-5 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 font-medium"
+                  >
+                    {isLoading ? "Approving..." : "Approve"}
+                  </button>
+                  <button
+                    onClick={() => handleVote("rejected")}
+                    disabled={isLoading}
+                    className="px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 font-medium"
+                  >
+                    {isLoading ? "Rejecting..." : "Reject"}
+                  </button>
+                </div>
               </div>
             )}
           </div>

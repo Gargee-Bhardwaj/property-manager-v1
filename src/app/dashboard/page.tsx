@@ -1,56 +1,22 @@
 "use client";
 import { useAuth } from "../../lib/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMyProjectsApi } from "../../lib/apis/auth";
 import MainLayout from "../../components/MainLayout";
 import { useAtom } from "jotai";
 import { projectsAtom } from "../../lib/atoms";
 
-export default function DashboardPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [projects, setProjects] = useAtom(projectsAtom);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
+const ProjectCard = ({ project, onNavigate }: any) => {
+  const handleNavigation = useCallback(() => {
+    onNavigate(project.id);
+  }, [onNavigate, project.id]);
 
-  // Separate projects by role
-  const ownerProjects = projects.filter((project) => project.role === "owner");
-  const memberProjects = projects.filter(
-    (project) => project.role === "member"
-  );
-
-  useEffect(() => {
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-    if (user.is_superuser) {
-      router.replace("/admin/dashboard");
-      return;
-    }
-    const fetchProjects = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (!token) throw new Error("No access token found");
-        const response = (await getMyProjectsApi(token)) as { data: any[] };
-        setProjects(response.data);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch projects");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
-  }, [user, router, setProjects, token]);
-
-  const renderProjectCard = (project: any) => (
+  return (
     <div
       key={project.id}
       className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => router.push(`/projects/${project.id}`)}
+      onClick={handleNavigation}
     >
       <h3 className="text-lg font-semibold mb-2">{project.name}</h3>
       <p className="text-sm mb-2">
@@ -70,6 +36,53 @@ export default function DashboardPage() {
         {project.role.toUpperCase()}
       </span>
     </div>
+  );
+};
+
+export default function DashboardPage() {
+  const { user, token } = useAuth();
+  const router = useRouter();
+  const [projects, setProjects] = useAtom(projectsAtom);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Separate projects by role
+  const ownerProjects = projects.filter((project) => project.role === "owner");
+  const memberProjects = projects.filter(
+    (project) => project.role === "member"
+  );
+
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (!token) throw new Error("No access token found");
+      const response = (await getMyProjectsApi(token)) as { data: any[] };
+      setProjects(response.data);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch projects");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, setProjects]);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+    if (user.is_superuser) {
+      router.replace("/admin/dashboard");
+      return;
+    }
+    fetchProjects();
+  }, [user, router, fetchProjects]);
+
+  const handleNavigateToProject = useCallback(
+    (projectId: string) => {
+      router.push(`/projects/${projectId}`);
+    },
+    [router]
   );
 
   return (
@@ -92,7 +105,13 @@ export default function DashboardPage() {
                 Projects You Own
               </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {ownerProjects.map(renderProjectCard)}
+                {ownerProjects.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    project={p}
+                    onNavigate={handleNavigateToProject}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -105,7 +124,13 @@ export default function DashboardPage() {
                 Projects You are a Member Of
               </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {memberProjects.map(renderProjectCard)}
+                {memberProjects.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    project={p}
+                    onNavigate={handleNavigateToProject}
+                  />
+                ))}
               </div>
             </div>
           )}
