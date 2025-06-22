@@ -23,6 +23,9 @@ interface PlotDetailsModalProps {
       email: string;
       phone: string;
     };
+    customer_name?: string;
+    customer_phone?: string;
+    customer_email?: string;
   };
   onClose: () => void;
   onEditClick: () => void;
@@ -181,6 +184,11 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
                 {`${plot.sold_by_user?.full_name} | ${plot.sold_by_user?.email} | ${plot.sold_by_user?.phone}` ||
                   "N/A"}
               </p>
+              <p>
+                <span className="font-medium">Sold To:</span>{" "}
+                {`${plot.customer_name} | ${plot.customer_email} | ${plot.customer_phone}` ||
+                  "N/A"}
+              </p>
             </>
           ) : (
             <p className="text-gray-500">Plot is available for sale</p>
@@ -313,6 +321,28 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
             )}
           </div>
         )}
+
+        {/* {plot.plot_status === "sold" && (
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="text-md font-bold text-gray-800 mb-2">
+              Customer Information
+            </h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="font-semibold text-gray-600">Name</p>
+                <p>{plot.customer_name || "N/A"}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-600">Phone</p>
+                <p>{plot.customer_phone || "N/A"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="font-semibold text-gray-600">Email</p>
+                <p>{plot.customer_email || "N/A"}</p>
+              </div>
+            </div>
+          </div>
+        )} */}
       </div>
 
       {/* Action Buttons */}

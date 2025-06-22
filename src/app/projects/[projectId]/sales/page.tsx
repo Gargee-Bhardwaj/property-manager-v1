@@ -42,6 +42,7 @@ interface Plot {
   price: number;
   is_emi: boolean;
   amount_collected: number;
+  transaction_approval_status?: string;
 }
 
 interface ProjectDetails {
@@ -51,6 +52,21 @@ interface ProjectDetails {
 interface ApiResponse<T> {
   data: T;
 }
+
+const GreenTickIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5 text-green-600"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+  >
+    <path
+      fillRule="evenodd"
+      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
 
 export default function SalesPage() {
   const params = useParams();
@@ -190,12 +206,15 @@ export default function SalesPage() {
     }
   }, [plots, currentPage]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (plot: Plot) => {
+    if (plot.transaction_approval_status === "pending") {
+      return "bg-orange-100 text-orange-800 border-orange-300";
+    }
+    switch (plot.plot_status) {
       case "sold":
         return "bg-green-100 text-green-800 border-green-300";
       case "available":
-        return "bg-red-100 text-red-800 border-red-300";
+        return "bg-red-200 text-red-800 border-red-400";
       case "work_in_progress":
         return "bg-yellow-100 text-yellow-800 border-yellow-300";
       default:
@@ -613,6 +632,7 @@ export default function SalesPage() {
     );
   }
 
+  console.log(plots);
   return (
     <MainLayout
       breadcrumbs={[
@@ -656,17 +676,25 @@ export default function SalesPage() {
               {displayedPlots.map((plot) => (
                 <div
                   key={plot.id}
-                  className={`p-4 rounded-lg shadow-md cursor-pointer transition-transform transform hover:scale-105 border-2 ${getStatusColor(
-                    plot.plot_status
+                  className={`relative p-4 rounded-lg shadow-md cursor-pointer transition-transform transform hover:scale-105 border-2 ${getStatusColor(
+                    plot
                   )}`}
                   onClick={() => handlePlotClick(plot)}
                 >
+                  {plot.plot_status === "sold" &&
+                    plot.amount_collected >= plot.price && (
+                      <div className="absolute top-1 right-1">
+                        <GreenTickIcon />
+                      </div>
+                    )}
                   <p className="font-semibold">Plot #{plot.number}</p>
 
                   <span
                     className={`text-xs font-bold py-1 px-2 rounded-full mt-2 inline-block`}
                   >
-                    {plot.plot_status.replace(/_/g, " ").toUpperCase()}
+                    {plot.transaction_approval_status === "pending"
+                      ? "PENDING APPROVAL"
+                      : plot.plot_status.replace(/_/g, " ").toUpperCase()}
                   </span>
                 </div>
               ))}
