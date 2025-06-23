@@ -98,7 +98,7 @@ export function getPlotEmiDetails(token: string, plotId: string) {
 
 export function markEmiAsPaid(token: string, plotId: string, emiId: string) {
   return apiClient(`/plots/${plotId}/emi/${emiId}/mark-as-paid`, {
-    method: "GET",
+    method: "POST",
     token,
   });
 }
