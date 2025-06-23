@@ -112,7 +112,7 @@ export default function SalesPage() {
     is_emi: false,
     emi_amount: undefined,
     emi_start_date: new Date().toISOString().split("T")[0],
-    emi_frequency_months: undefined,
+    emi_frequency_months: 1,
     remaining_amount: selectedPlot ? selectedPlot.price : 0,
   });
   const [sellPlotError, setSellPlotError] = useState<string | null>(null);
@@ -379,13 +379,20 @@ export default function SalesPage() {
   const handleSellPlotClick = useCallback(() => {
     if (selectedPlot) {
       setSellFormData({
-        ...sellFormData,
-        amount_collected: selectedPlot.price.toString(),
+        amount_collected: "0",
+        sold_on_date: new Date().toISOString().split("T")[0],
+        customer_name: "",
+        customer_phone: "",
+        customer_email: "",
+        is_emi: false,
+        emi_amount: undefined,
+        emi_start_date: new Date().toISOString().split("T")[0],
+        emi_frequency_months: 1,
         remaining_amount: selectedPlot.price,
       });
     }
     setShowSellPlotForm(true);
-  }, [selectedPlot, sellFormData]);
+  }, [selectedPlot]);
 
   const handleSellPlotSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -455,7 +462,7 @@ export default function SalesPage() {
           ...prev,
           is_emi: checked,
           emi_amount: undefined,
-          emi_frequency_months: undefined,
+          emi_frequency_months: 1,
         }));
       } else {
         setSellFormData((prev) => ({ ...prev, [name]: value }));

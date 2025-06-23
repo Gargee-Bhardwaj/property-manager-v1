@@ -172,7 +172,7 @@ export const SellPlotModal: React.FC<SellPlotModalProps> = ({
               />
             </div>
 
-            <div className="p-3 bg-blue-50 rounded-md mb-4">
+            {/* <div className="p-3 bg-blue-50 rounded-md mb-4">
               <p className="text-sm">
                 <span className="font-medium">Calculated Installments:</span>{" "}
                 {formData.emi_frequency_months || 0} months
@@ -185,7 +185,7 @@ export const SellPlotModal: React.FC<SellPlotModalProps> = ({
                   rounded up)
                 </p>
               )}
-            </div>
+            </div> */}
           </>
         )}
 

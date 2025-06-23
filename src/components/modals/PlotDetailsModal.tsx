@@ -203,8 +203,8 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
           {plot.is_emi ? (
             <>
               <p>
-                <span className="font-medium">EMI Amount:</span> ₹
-                {plot.emi_amount?.toLocaleString() || "N/A"}
+                <span className="font-medium">EMI Amount per installment:</span>{" "}
+                ₹{plot.emi_amount?.toLocaleString() || "N/A"}
               </p>
               <p>
                 <span className="font-medium">EMI Frequency:</span> Every{" "}
