@@ -42,6 +42,7 @@ interface Plot {
   price: number;
   is_emi: boolean;
   amount_collected: number;
+  total_amount_collected: number;
   transaction_approval_status?: string;
 }
 
