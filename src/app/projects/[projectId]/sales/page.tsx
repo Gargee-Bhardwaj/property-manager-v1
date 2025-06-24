@@ -723,7 +723,9 @@ export default function SalesPage() {
                   onClick={() => handlePlotClick(plot)}
                 >
                   {plot.plot_status === "sold" &&
-                    plot.amount_collected >= plot.price && (
+                    Number(
+                      plot.total_amount_collected ?? plot.amount_collected
+                    ) >= Number(plot.price) && (
                       <div className="absolute top-1 right-1">
                         <GreenTickIcon />
                       </div>
