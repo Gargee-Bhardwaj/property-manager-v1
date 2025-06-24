@@ -17,6 +17,7 @@ interface Transaction {
   target_model: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  amount: number;
   initiated_by?: {
     full_name?: string;
     email?: string;
@@ -311,6 +312,10 @@ export default function TransactionsPage() {
               <p className="text-gray-500">Loading details...</p>
             ) : (
               <div className="space-y-3">
+                <p>
+                  <span className="font-medium">Amount:</span>{" "}
+                  {selectedApproval.amount}
+                </p>
                 <p>
                   <span className="font-medium">Status:</span>{" "}
                   {getStatusComponent(selectedApproval.status)}

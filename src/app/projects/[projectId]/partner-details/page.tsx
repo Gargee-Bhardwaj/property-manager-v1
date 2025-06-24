@@ -299,6 +299,9 @@ export default function PartnerDetailsPage() {
     if (target_model === "PlotEMI") {
       return `EMI Payment (₹${amount.toLocaleString()})`;
     }
+    if (target_model === "PlotAmountCollection") {
+      return `Plot Amount Collection: (₹${amount.toLocaleString()})`;
+    }
     return `${target_model} (₹${amount.toLocaleString()})`;
   };
 
