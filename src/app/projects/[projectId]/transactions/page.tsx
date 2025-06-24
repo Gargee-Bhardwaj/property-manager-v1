@@ -56,6 +56,13 @@ interface TransactionApproval {
   votes: Vote[];
 }
 
+// Tailwind Spinner component
+const Spinner = () => (
+  <div className="flex justify-center items-center py-8">
+    <div className="h-8 w-8 border-4 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+  </div>
+);
+
 export default function TransactionsPage() {
   const { token, isLoading: authLoading } = useAuth();
   const params = useParams();
@@ -66,6 +73,7 @@ export default function TransactionsPage() {
   const [createdByMe, setCreatedByMe] = useState<TransactionApproval[]>([]);
   const [toApprove, setToApprove] = useState<TransactionApproval[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -127,7 +135,8 @@ export default function TransactionsPage() {
 
   const handleViewApprovalDetails = useCallback(
     async (approvalId: string) => {
-      setIsLoading(true);
+      setShowApprovalDetailsModal(true); // Open modal immediately
+      setDetailsLoading(true);
       setError(null);
       try {
         if (!token) throw new Error("No access token found");
@@ -136,20 +145,25 @@ export default function TransactionsPage() {
           approvalId
         )) as Transaction;
         setSelectedApproval(details);
-        setShowApprovalDetailsModal(true);
       } catch (err: any) {
         setError(err.message || "Failed to fetch approval details");
       } finally {
-        setIsLoading(false);
+        setDetailsLoading(false);
       }
     },
     [token]
   );
 
+  const handleCloseApprovalDetailsModal = useCallback(() => {
+    setShowApprovalDetailsModal(false);
+    setSelectedApproval(null);
+    setError(null);
+  }, []);
+
   const handleVote = useCallback(
     async (approvalStatus: "approved" | "rejected") => {
       if (!selectedApproval) return;
-      setIsLoading(true);
+      // setDetailsLoading(true);
       setSuccess(null);
       setError(null);
       try {
@@ -162,14 +176,15 @@ export default function TransactionsPage() {
         setSuccess(`Transaction ${approvalStatus} successfully!`);
         setShowApprovalDetailsModal(false);
         setSelectedApproval(null);
-        setTimeout(() => setSuccess(null), 3000);
+        setTimeout(() => setSuccess(null), 1500);
+        fetchTransactions();
       } catch (err: any) {
         setError(err.message || `Failed to ${approvalStatus} transaction`);
       } finally {
-        setIsLoading(false);
+        // setDetailsLoading(false);
       }
     },
-    [token, selectedApproval]
+    [token, selectedApproval, fetchTransactions]
   );
 
   const getStatusComponent = useCallback((status: string) => {
@@ -191,7 +206,12 @@ export default function TransactionsPage() {
   }, []);
 
   if (authLoading || isLoading) {
-    return <MainLayout>Loading transactions...</MainLayout>;
+    return (
+      <MainLayout>
+        <Spinner />
+        <p className="text-gray-500 text-center">Loading transactions...</p>
+      </MainLayout>
+    );
   }
 
   return (
@@ -220,9 +240,9 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
         {/* Transactions Created by Me */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 overflow-auto max-h-[80vh]">
           <h3 className="text-lg font-semibold mb-4">
             Transactions Created by Me
           </h3>
@@ -251,7 +271,7 @@ export default function TransactionsPage() {
         </div>
 
         {/* Transactions to Approve */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 overflow-auto max-h-[80vh]">
           <h3 className="text-lg font-semibold mb-4">
             Transactions to Approve
           </h3>
@@ -291,15 +311,11 @@ export default function TransactionsPage() {
       </div>
 
       {/* Approval Details Modal */}
-      {showApprovalDetailsModal && selectedApproval && (
+      {showApprovalDetailsModal && (
         <div className="fixed inset-0 bg-opacity-50 min-h-[80vh] flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[80vh] overflow-scroll relative shadow-xl mt-20">
             <button
-              onClick={() => {
-                setShowApprovalDetailsModal(false);
-                setSelectedApproval(null);
-                setError(null); // Clear any modal-specific errors
-              }}
+              onClick={handleCloseApprovalDetailsModal}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl"
             >
               &times;
@@ -308,8 +324,8 @@ export default function TransactionsPage() {
               Transaction Approval Details
             </h3>
 
-            {isLoading ? (
-              <p className="text-gray-500">Loading details...</p>
+            {detailsLoading || !selectedApproval ? (
+              <Spinner />
             ) : (
               <div className="space-y-3">
                 <p>
@@ -384,17 +400,17 @@ export default function TransactionsPage() {
                 <div className="mt-6 flex justify-end space-x-4">
                   <button
                     onClick={() => handleVote("approved")}
-                    disabled={isLoading}
+                    disabled={detailsLoading}
                     className="px-5 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 font-medium"
                   >
-                    {isLoading ? "Approving..." : "Approve"}
+                    {detailsLoading ? "Approving..." : "Approve"}
                   </button>
                   <button
                     onClick={() => handleVote("rejected")}
-                    disabled={isLoading}
+                    disabled={detailsLoading}
                     className="px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 font-medium"
                   >
-                    {isLoading ? "Rejecting..." : "Reject"}
+                    {detailsLoading ? "Rejecting..." : "Reject"}
                   </button>
                 </div>
               </div>
