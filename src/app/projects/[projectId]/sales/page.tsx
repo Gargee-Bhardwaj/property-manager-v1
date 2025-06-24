@@ -104,7 +104,7 @@ export default function SalesPage() {
   // sell plot
   const [showSellPlotForm, setShowSellPlotForm] = useState(false);
   const [sellFormData, setSellFormData] = useState({
-    amount_collected: selectedPlot?.price.toString() || "",
+    amount_collected: selectedPlot?.price.toLocaleString("en-IN") || "",
     sold_on_date: new Date().toISOString().split("T")[0],
     customer_name: "",
     customer_phone: "",

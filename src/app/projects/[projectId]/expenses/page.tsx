@@ -244,7 +244,7 @@ export default function ExpensesPage() {
                       {expense.description}
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ₹{expense.amount.toLocaleString()}
+                      ₹{expense.amount.toLocaleString("en-IN")}
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                       {expense.type}

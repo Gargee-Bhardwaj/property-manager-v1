@@ -329,8 +329,8 @@ export default function TransactionsPage() {
             ) : (
               <div className="space-y-3">
                 <p>
-                  <span className="font-medium">Amount:</span>{" "}
-                  {selectedApproval.amount}
+                  <span className="font-medium">Amount:</span> ₹
+                  {selectedApproval.amount.toLocaleString("en-IN")}
                 </p>
                 <p>
                   <span className="font-medium">Status:</span>{" "}

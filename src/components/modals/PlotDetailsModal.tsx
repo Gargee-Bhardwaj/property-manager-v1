@@ -155,15 +155,15 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
           </p>
           <p>
             <span className="font-medium">Price:</span> ₹
-            {plot.price.toLocaleString()}
+            {plot.price.toLocaleString("en-IN")}
           </p>
           <p>
             <span className="font-medium">Amount Collected:</span> ₹
-            {plot.total_amount_collected.toLocaleString()}
+            {plot.total_amount_collected.toLocaleString("en-IN")}
           </p>
           <p>
             <span className="font-medium">Balance:</span> ₹
-            {(plot.price - plot.total_amount_collected).toLocaleString()}
+            {(plot.price - plot.total_amount_collected).toLocaleString("en-IN")}
           </p>
         </div>
 
@@ -204,7 +204,7 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
             <>
               <p>
                 <span className="font-medium">EMI Amount per installment:</span>{" "}
-                ₹{plot.emi_amount?.toLocaleString() || "N/A"}
+                ₹{plot.emi_amount?.toLocaleString("en-IN") || "N/A"}
               </p>
               <p>
                 <span className="font-medium">EMI Frequency:</span> Every{" "}
@@ -281,7 +281,7 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
                     {emiDetails.map((emi) => (
                       <tr key={emi.id}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          ₹{emi.amount.toLocaleString()}
+                          ₹{emi.amount.toLocaleString("en-IN")}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {new Date(emi.due_date).toLocaleDateString()}

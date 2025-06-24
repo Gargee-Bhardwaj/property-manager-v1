@@ -96,7 +96,7 @@ export const TransactionHistoryModal: React.FC<
                       {new Date(tx.created_at).toLocaleString()}
                     </td>
                     <td className="py-2 px-4 border-b text-sm">
-                      ₹{tx.amount.toLocaleString()}
+                      ₹{tx.amount.toLocaleString("en-IN")}
                     </td>
                     <td className="py-2 px-4 border-b text-sm">
                       {tx.initiated_by?.full_name || "N/A"}

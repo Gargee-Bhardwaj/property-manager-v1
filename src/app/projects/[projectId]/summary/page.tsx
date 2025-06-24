@@ -221,7 +221,7 @@ export default function SummaryPage() {
                 Total Amount Collected
               </h4>
               <p className="text-2xl font-bold text-green-600">
-                ₹{totalCollected.toLocaleString()}
+                ₹{totalCollected.toLocaleString("en-IN")}
               </p>
             </div>
           </div>
