@@ -90,6 +90,7 @@ export default function SalesPage() {
   const [createPlotSuccess, setCreatePlotSuccess] = useState<string | null>(
     null
   );
+  const [isCreatingPlot, setIsCreatingPlot] = useState(false);
 
   // edit plot
   const [showEditPlotModal, setShowEditPlotModal] = useState(false);
@@ -132,6 +133,9 @@ export default function SalesPage() {
   const [emiDetails, setEmiDetails] = useState<any[]>([]);
   const [loadingEmiDetails, setLoadingEmiDetails] = useState(false);
   const [emiError, setEmiError] = useState<string | null>(null);
+  // Track which EMI is being marked as paid
+  const [markingEmiId, setMarkingEmiId] = useState<string | null>(null);
+  const [sentForApprovalEmis, setSentForApprovalEmis] = useState<string[]>([]);
 
   // Add Amount state
   const [showAddAmountModal, setShowAddAmountModal] = useState(false);
@@ -273,7 +277,7 @@ export default function SalesPage() {
       e.preventDefault();
       setCreatePlotError(null);
       setCreatePlotSuccess(null);
-
+      setIsCreatingPlot(true);
       try {
         if (!token) throw new Error("No access token found");
 
@@ -303,9 +307,11 @@ export default function SalesPage() {
         setTimeout(() => {
           setShowCreatePlotModal(false);
           setCreatePlotSuccess(null);
+          setIsCreatingPlot(false);
         }, 1500);
       } catch (err: any) {
         setCreatePlotError(err.message || "Failed to create plot");
+        setIsCreatingPlot(false);
       }
     },
     [token, projectId, plotFormData, setPlots]
@@ -602,6 +608,7 @@ export default function SalesPage() {
   const handleMarkEmiAsPaid = useCallback(
     async (emiId: string) => {
       if (!selectedPlot) return;
+      setMarkingEmiId(emiId);
       try {
         if (!token) throw new Error("No access token found");
         await markEmiAsPaid(token, selectedPlot.id, emiId);
@@ -611,8 +618,11 @@ export default function SalesPage() {
           selectedPlot.id
         )) as ApiResponse<any[]>;
         setEmiDetails(response?.data || []);
+        setSentForApprovalEmis((prev) => [...prev, emiId]);
       } catch (err: any) {
         setEmiError(err.message || "Failed to mark EMI as paid");
+      } finally {
+        setMarkingEmiId(null);
       }
     },
     [token, selectedPlot]
@@ -777,6 +787,7 @@ export default function SalesPage() {
           onChange={handlePlotFormChange}
           error={createPlotError}
           success={createPlotSuccess}
+          isSubmitting={isCreatingPlot}
         />
 
         {selectedPlot && (
@@ -828,6 +839,8 @@ export default function SalesPage() {
               loadingEmi={loadingEmiDetails}
               emiError={emiError}
               onMarkEmiAsPaid={handleMarkEmiAsPaid}
+              markingEmiId={markingEmiId}
+              sentForApprovalEmis={sentForApprovalEmis}
             />
             <AddAmountModal
               show={showAddAmountModal}

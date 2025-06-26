@@ -15,6 +15,7 @@ interface CreatePlotModalProps {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => void;
   onSubmit: (e: React.FormEvent) => void;
+  isSubmitting?: boolean;
 }
 
 export const CreatePlotModal: React.FC<CreatePlotModalProps> = ({
@@ -25,6 +26,7 @@ export const CreatePlotModal: React.FC<CreatePlotModalProps> = ({
   success,
   onChange,
   onSubmit,
+  isSubmitting = false,
 }) => {
   if (!show) return null;
 
@@ -53,22 +55,7 @@ export const CreatePlotModal: React.FC<CreatePlotModalProps> = ({
         )}
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Plot Status
-            </label>
-            <select
-              name="plot_status"
-              value={formData.plot_status}
-              onChange={onChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            >
-              <option value="available">Available</option>
-              <option value="sold">Sold</option>
-              <option value="work_in_progress">In Progress</option>
-            </select>
-          </div>
+          <input type="hidden" name="plot_status" value="available" />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -127,9 +114,10 @@ export const CreatePlotModal: React.FC<CreatePlotModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-400"
             >
-              Create Plot
+              {isSubmitting ? "Creating..." : "Create Plot"}
             </button>
           </div>
         </form>

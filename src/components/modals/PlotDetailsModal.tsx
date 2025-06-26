@@ -46,6 +46,8 @@ interface PlotDetailsModalProps {
   loadingEmi?: boolean;
   emiError?: string | null;
   onMarkEmiAsPaid?: (emiId: string) => void;
+  markingEmiId?: string | null;
+  sentForApprovalEmis?: string[];
 }
 
 export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
@@ -63,6 +65,8 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
   loadingEmi = false,
   emiError = null,
   onMarkEmiAsPaid,
+  markingEmiId = null,
+  sentForApprovalEmis = [],
 }) => {
   if (!show) return null;
 
@@ -304,14 +308,47 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {!emi.is_paid && onMarkEmiAsPaid && (
-                            <button
-                              onClick={() => onMarkEmiAsPaid(emi.id)}
-                              className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                            >
-                              Mark as Paid
-                            </button>
-                          )}
+                          {!emi.is_paid &&
+                            onMarkEmiAsPaid &&
+                            (sentForApprovalEmis.includes(emi.id) ? (
+                              <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-md text-sm">
+                                Sent for Approval
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => onMarkEmiAsPaid(emi.id)}
+                                className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:bg-blue-300"
+                                disabled={markingEmiId === emi.id}
+                              >
+                                {markingEmiId === emi.id ? (
+                                  <span className="flex items-center">
+                                    <svg
+                                      className="animate-spin h-4 w-4 mr-1 text-white"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                      ></circle>
+                                      <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v8z"
+                                      ></path>
+                                    </svg>
+                                    Marking...
+                                  </span>
+                                ) : (
+                                  "Mark as Paid"
+                                )}
+                              </button>
+                            ))}
                         </td>
                       </tr>
                     ))}
