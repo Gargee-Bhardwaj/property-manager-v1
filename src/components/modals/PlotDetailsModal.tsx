@@ -68,9 +68,9 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
   markingEmiId = null,
   sentForApprovalEmis = [],
 }) => {
-  if (!show) return null;
-
   const [showEmiSchedule, setShowEmiSchedule] = useState(false);
+
+  if (!show) return null;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -237,7 +237,7 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
                     : plot.transaction_approval_status === "pending"
                     ? "text-yellow-600"
                     : "text-red-600"
-                }`}
+                }`.replace("$ {", "${")}
               >
                 {plot.transaction_approval_status.toUpperCase()}
               </span>
