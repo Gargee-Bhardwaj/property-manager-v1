@@ -709,7 +709,7 @@ export default function SalesPage() {
         {error && <p className="text-red-500 mb-4">Error: {error}</p>}
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-2 sm:gap-4">
             {Array.from({ length: plotsPerPage }).map((_, index) => (
               <div
                 key={index}
@@ -723,7 +723,7 @@ export default function SalesPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-2 sm:gap-4">
               {displayedPlots.map((plot) => (
                 <div
                   key={plot.id}
