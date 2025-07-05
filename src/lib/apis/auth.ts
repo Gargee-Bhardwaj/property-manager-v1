@@ -29,8 +29,15 @@ export function getMyProjectsApi(token: string) {
   return apiClient("/projects/my", { token });
 }
 
-export function getProjectPlotsApi(token: string, projectId: string) {
-  return apiClient(`/projects/${projectId}/plots`, { token });
+export function getProjectPlotsApi(
+  token: string,
+  projectId: string,
+  size: number,
+  page: number
+) {
+  return apiClient(`/projects/${projectId}/plots?page=${page}&size=${size}`, {
+    token,
+  });
 }
 
 export function getProjectDetails(token: string, projectId: string) {

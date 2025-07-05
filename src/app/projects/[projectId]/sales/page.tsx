@@ -155,9 +155,10 @@ export default function SalesPage() {
   const [documentsError, setDocumentsError] = useState<string | null>(null);
 
   // client side pagination
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const plotsPerPage = 20;
   const [displayedPlots, setDisplayedPlots] = useState<Plot[]>([]);
+  const [totalPlots, setTotalPlots] = useState(0);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -190,10 +191,13 @@ export default function SalesPage() {
         if (!token) throw new Error("No access token found");
         const response = (await getProjectPlotsApi(
           token,
-          projectId
+          projectId,
+          plotsPerPage,
+          currentPage
         )) as ApiResponse<Plot[]>;
         setPlots(response?.data || []);
-        setDisplayedPlots(response?.data?.slice(0, plotsPerPage) || []);
+        setDisplayedPlots(response?.data || []);
+        setTotalPlots(response?.data?.length || 0);
       } catch (err: any) {
         setError(err.message || "Failed to fetch plots");
       } finally {
@@ -201,15 +205,7 @@ export default function SalesPage() {
       }
     };
     fetchPlots();
-  }, [projectId, setPlots, token, authLoading]);
-
-  useEffect(() => {
-    if (plots.length > 0) {
-      const startIndex = currentPage * plotsPerPage;
-      const endIndex = startIndex + plotsPerPage;
-      setDisplayedPlots(plots.slice(startIndex, endIndex));
-    }
-  }, [plots, currentPage]);
+  }, [projectId, setPlots, token, authLoading, currentPage]);
 
   const getStatusColor = useCallback((plot: Plot) => {
     if (plot.transaction_approval_status === "pending") {
@@ -293,9 +289,12 @@ export default function SalesPage() {
 
         const response = (await getProjectPlotsApi(
           token,
-          projectId
+          projectId,
+          plotsPerPage,
+          currentPage
         )) as ApiResponse<Plot[]>;
         setPlots(response?.data || []);
+        setDisplayedPlots(response?.data || []);
 
         setPlotFormData({
           plot_status: "available",
@@ -314,7 +313,7 @@ export default function SalesPage() {
         setIsCreatingPlot(false);
       }
     },
-    [token, projectId, plotFormData, setPlots]
+    [token, projectId, plotFormData, setPlots, currentPage]
   );
 
   const handleEditPlotClick = useCallback((plot: Plot) => {
@@ -348,9 +347,12 @@ export default function SalesPage() {
 
         const response = (await getProjectPlotsApi(
           token,
-          projectId
+          projectId,
+          plotsPerPage,
+          currentPage
         )) as ApiResponse<Plot[]>;
         setPlots(response?.data || []);
+        setDisplayedPlots(response?.data || []);
 
         setTimeout(() => {
           setShowEditPlotModal(false);
@@ -368,6 +370,7 @@ export default function SalesPage() {
       projectId,
       setPlots,
       handleCloseDetails,
+      currentPage,
     ]
   );
 
@@ -444,9 +447,12 @@ export default function SalesPage() {
 
         const response = (await getProjectPlotsApi(
           token,
-          projectId
+          projectId,
+          plotsPerPage,
+          currentPage
         )) as ApiResponse<Plot[]>;
         setPlots(response?.data || []);
+        setDisplayedPlots(response?.data || []);
 
         setTimeout(() => {
           setShowSellPlotForm(false);
@@ -457,7 +463,15 @@ export default function SalesPage() {
         setSellPlotError(err.message || "Failed to sell plot");
       }
     },
-    [token, selectedPlot, sellFormData, projectId, setPlots, handleCloseDetails]
+    [
+      token,
+      selectedPlot,
+      sellFormData,
+      projectId,
+      setPlots,
+      handleCloseDetails,
+      currentPage,
+    ]
   );
 
   const handleSellFormChange = useCallback(
@@ -509,16 +523,19 @@ export default function SalesPage() {
         // Refresh plot data
         const response = (await getProjectPlotsApi(
           token,
-          projectId
+          projectId,
+          plotsPerPage,
+          currentPage
         )) as ApiResponse<Plot[]>;
         setPlots(response?.data || []);
+        setDisplayedPlots(response?.data || []);
       } catch (err: any) {
         setAddAmountError(err.message || "Failed to add amount.");
       } finally {
         setIsSubmittingAmount(false);
       }
     },
-    [token, selectedPlot, projectId, setPlots]
+    [token, selectedPlot, projectId, setPlots, currentPage]
   );
 
   const handleUploadDocument = useCallback(
@@ -629,14 +646,11 @@ export default function SalesPage() {
   );
 
   const handleNextPage = useCallback(() => {
-    const totalPages = Math.ceil(plots.length / plotsPerPage);
-    if (currentPage < totalPages - 1) {
-      setCurrentPage(currentPage + 1);
-    }
-  }, [currentPage, plots.length]);
+    setCurrentPage(currentPage + 1);
+  }, [currentPage]);
 
   const handlePrevPage = useCallback(() => {
-    if (currentPage > 0) {
+    if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   }, [currentPage]);
@@ -752,25 +766,20 @@ export default function SalesPage() {
                 </div>
               ))}
             </div>
-            {plots.length > plotsPerPage && (
+            {plots.length > 0 && (
               <div className="flex justify-center items-center mt-6">
                 <button
                   onClick={handlePrevPage}
-                  disabled={currentPage === 0}
-                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                  disabled={currentPage === 1}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   Previous
                 </button>
-                <span className="mx-4">
-                  Page {currentPage + 1} of{" "}
-                  {Math.ceil(plots.length / plotsPerPage)}
-                </span>
+                <span className="mx-4">Page {currentPage}</span>
                 <button
                   onClick={handleNextPage}
-                  disabled={
-                    currentPage >= Math.ceil(plots.length / plotsPerPage) - 1
-                  }
-                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                  disabled={plots.length < plotsPerPage}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   Next
                 </button>
