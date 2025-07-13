@@ -458,7 +458,7 @@ export default function SalesPage() {
           setShowSellPlotForm(false);
           setSellPlotSuccess(null);
           handleCloseDetails();
-        }, 1500);
+        }, 1000);
       } catch (err: any) {
         setSellPlotError(err.message || "Failed to sell plot");
       }

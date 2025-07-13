@@ -37,7 +37,7 @@ export const SellPlotModal: React.FC<SellPlotModalProps> = ({
   if (!show) return null;
 
   return (
-    <div className="mt-6 rounded-lg bg-white p-6 shadow-md border border-gray-200 relative">
+    <div className="mt-6 rounded-lg bg-white p-6 shadow-md border border-gray-200 fixed inset-0 z-10 max-w-[90vw] md:max-w-[60vw] max-h-[90vh] overflow-y-auto mx-auto">
       <h3 className="text-lg font-semibold mb-4">Sell Plot #{plotNumber}</h3>
 
       {error && (

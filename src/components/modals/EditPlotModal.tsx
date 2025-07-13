@@ -30,7 +30,7 @@ export const EditPlotModal: React.FC<EditPlotModalProps> = ({
   if (!show) return null;
 
   return (
-    <div className="flex items-center justify-center my-4 bg-white rounded-lg shadow-md border border-gray-200 relative">
+    <div className="flex items-center justify-center bg-white rounded-lg shadow-md border border-gray-200 fixed inset-0 z-10 max-w-[90vw] md:max-w-[60vw] max-h-[50vh] overflow-y-auto m-auto">
       <div className="bg-white rounded-lg p-6 w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Edit Plot #{plotNumber}</h3>
