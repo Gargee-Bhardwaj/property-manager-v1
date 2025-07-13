@@ -7,6 +7,7 @@ interface PlotDetailsModalProps {
     plot_status: string;
     area: number;
     price: number;
+    misc_amount: number;
     total_amount_collected: number;
     sold_on_date?: string;
     customer_id?: string;
@@ -170,6 +171,10 @@ export const PlotDetailsModal: React.FC<PlotDetailsModalProps> = ({
           <p>
             <span className="font-medium">Balance:</span> ₹
             {(plot.price - plot.total_amount_collected).toLocaleString("en-IN")}
+          </p>
+          <p>
+            <span className="font-medium">Misc Amount:</span> ₹
+            {plot.misc_amount?.toLocaleString("en-IN")}
           </p>
         </div>
 

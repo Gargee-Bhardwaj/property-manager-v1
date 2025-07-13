@@ -42,6 +42,7 @@ interface Plot {
   price: number;
   is_emi: boolean;
   amount_collected: number;
+  misc_amount: number;
   total_amount_collected: number;
   transaction_approval_status?: string;
 }
@@ -106,6 +107,7 @@ export default function SalesPage() {
   const [showSellPlotForm, setShowSellPlotForm] = useState(false);
   const [sellFormData, setSellFormData] = useState({
     amount_collected: selectedPlot?.price.toLocaleString("en-IN") || "",
+    misc_amount: selectedPlot?.misc_amount?.toLocaleString("en-IN") || "0",
     sold_on_date: new Date().toISOString().split("T")[0],
     customer_name: "",
     customer_phone: "",
@@ -389,6 +391,7 @@ export default function SalesPage() {
     if (selectedPlot) {
       setSellFormData({
         amount_collected: "0",
+        misc_amount: "0",
         sold_on_date: new Date().toISOString().split("T")[0],
         customer_name: "",
         customer_phone: "",
@@ -424,6 +427,7 @@ export default function SalesPage() {
         emi_amount,
         emi_start_date,
         emi_frequency_months,
+        misc_amount,
       } = sellFormData;
 
       const sellData: any = {
@@ -433,6 +437,7 @@ export default function SalesPage() {
         customer_phone,
         customer_email,
         is_emi,
+        misc_amount,
       };
 
       if (is_emi) {

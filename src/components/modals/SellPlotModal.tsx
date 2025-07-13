@@ -5,6 +5,7 @@ interface SellPlotModalProps {
   onClose: () => void;
   formData: {
     amount_collected: string;
+    misc_amount: string;
     sold_on_date: string;
     customer_name: string;
     customer_phone: string;
@@ -58,6 +59,22 @@ export const SellPlotModal: React.FC<SellPlotModalProps> = ({
             type="number"
             name="amount_collected"
             value={formData.amount_collected}
+            onChange={onChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+            min="0"
+            step="0.01"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Misc Amount (₹)
+          </label>
+          <input
+            type="number"
+            name="misc_amount"
+            value={formData.misc_amount}
             onChange={onChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
             required
