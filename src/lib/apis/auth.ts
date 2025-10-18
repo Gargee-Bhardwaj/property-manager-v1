@@ -1,6 +1,6 @@
 import { apiClient } from "../apiClient";
 
-const BASE_URL = "https://hustle-jldf.onrender.com/api/v1";
+const BASE_URL = "https://api.resaas.in/api/v1";
 
 export function loginApi(email: string, password: string) {
   const body = new URLSearchParams({
@@ -134,7 +134,7 @@ export function getTransactionApprovals(
   partnerId?: string
 ) {
   const url = new URL(
-    `https://hustle-jldf.onrender.com/api/v1/projects/${projectId}/transaction-approvals`
+    `https://api.resaas.in/api/v1/projects/${projectId}/transaction-approvals`
   );
   if (partnerId) {
     url.searchParams.append("partner_id", partnerId);

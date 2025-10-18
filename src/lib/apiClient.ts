@@ -11,7 +11,7 @@ export async function apiClient<T>(
   options: ApiClientOptions = {}
 ): Promise<T> {
   const { method = "GET", token, body, headers: customHeaders } = options;
-  const BASE_URL = "https://hustle-jldf.onrender.com/api/v1";
+  const BASE_URL = "https://api.resaas.in/api/v1";
 
   const headers: HeadersInit = {
     accept: "application/json",

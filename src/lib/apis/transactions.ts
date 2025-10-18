@@ -1,6 +1,6 @@
 import { apiClient } from "../apiClient";
 
-const BASE_URL = "https://hustle-jldf.onrender.com/api/v1";
+const BASE_URL = "https://api.resaas.in/api/v1";
 
 export function getTransactionsCreatedByMeApi(
   token: string,
